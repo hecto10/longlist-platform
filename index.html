@@ -14,28 +14,28 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0d0f12;
-    --bg2: #141720;
-    --bg3: #1c2029;
-    --border: #2a2f3d;
-    --border2: #363c4e;
-    --text: #e8eaf0;
-    --text2: #8b90a0;
-    --text3: #5a5f70;
-    --accent: #4f7fff;
-    --accent2: #2d52cc;
-    --green: #22c55e;
-    --red: #ef4444;
+    --bg: #f8f7f4;
+    --bg2: #ffffff;
+    --bg3: #f0ede8;
+    --border: #e5e0d8;
+    --border2: #d4cdc3;
+    --text: #1a1714;
+    --text2: #6b6560;
+    --text3: #9e9890;
+    --accent: #ff6a00;
+    --accent2: #e85500;
+    --green: #16a34a;
+    --red: #dc2626;
     --amber: #f59e0b;
-    --purple: #a78bfa;
-    --teal: #2dd4bf;
+    --purple: #7c3aed;
+    --teal: #0d9488;
   }
   body { font-family: 'Pretendard', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
   #root { min-height: 100vh; }
 
   /* LAYOUT */
   .app { display: flex; flex-direction: column; min-height: 100vh; }
-  .header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header { background: var(--bg2); border-bottom: 2px solid var(--accent); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
   .header-logo { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); display: flex; align-items: center; gap: 10px; }
   .header-logo span { color: var(--accent); }
   .header-nav { display: flex; gap: 4px; }
@@ -55,10 +55,10 @@
   /* TOOLBAR */
   .toolbar { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
   .search-box { flex: 1; min-width: 200px; position: relative; }
-  .search-box input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px 9px 36px; font-size: 13px; color: var(--text); font-family: inherit; outline: none; transition: border 0.15s; }
+  .search-box input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px 9px 36px; font-size: 13px; color: var(--text); font-family: inherit; outline: none; transition: border 0.15s; }
   .search-box input:focus { border-color: var(--accent); }
   .search-box::before { content: '⌕'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 16px; pointer-events: none; }
-  .filter-select { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; font-size: 13px; color: var(--text); font-family: inherit; outline: none; cursor: pointer; }
+  .filter-select { background: var(--bg2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 14px; font-size: 13px; color: var(--text); font-family: inherit; outline: none; cursor: pointer; }
   .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; transition: all 0.15s; border: none; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent2); }
@@ -74,12 +74,12 @@
   .table-header span:hover { color: var(--text2); }
   .table-row { display: grid; grid-template-columns: 2fr 2fr 1.2fr 1.2fr 1.2fr 1fr 80px; padding: 14px 20px; border-bottom: 1px solid var(--border); align-items: center; cursor: pointer; transition: background 0.12s; }
   .table-row:last-child { border-bottom: none; }
-  .table-row:hover { background: var(--bg3); }
+  .table-row:hover { background: #fff5f0; }
   .company-name { font-size: 14px; font-weight: 600; color: var(--text); }
   .company-industry { font-size: 11px; color: var(--text3); margin-top: 2px; }
   .tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
-  .tag { font-size: 10px; padding: 2px 8px; border-radius: 99px; background: var(--bg3); border: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
-  .tag.sector { background: rgba(79,127,255,0.1); border-color: rgba(79,127,255,0.3); color: var(--accent); }
+  .tag { font-size: 10px; padding: 2px 8px; border-radius: 99px; background: #f0ede8; border: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+  .tag.sector { background: rgba(255,106,0,0.08); border-color: rgba(255,106,0,0.3); color: var(--accent); }
   .mono { font-family: 'DM Mono', monospace; font-size: 13px; }
   .change { display: flex; align-items: center; gap: 4px; font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
   .change.up { color: var(--green); }
@@ -105,12 +105,13 @@
   .info-label { font-size: 12px; color: var(--text3); }
   .info-value { font-size: 13px; color: var(--text); font-weight: 500; text-align: right; }
   .history-table { width: 100%; border-collapse: collapse; }
-  .history-table th { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border); }
+  .history-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .history-table th { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); background: var(--bg3); }
   .history-table th:first-child { text-align: left; }
-  .history-table td { padding: 10px 12px; font-size: 13px; font-family: 'DM Mono', monospace; text-align: right; border-bottom: 1px solid var(--border); }
-  .history-table td:first-child { text-align: left; color: var(--text2); font-family: inherit; }
+  .history-table td { padding: 10px 14px; font-size: 13px; font-family: 'DM Mono', monospace; text-align: right; border-bottom: 1px solid var(--border); color: var(--text); }
+  .history-table td:first-child { text-align: left; color: var(--text); font-family: inherit; font-weight: 500; }
   .history-table tr:last-child td { border-bottom: none; }
-  .history-table tr:hover td { background: var(--bg3); }
+  .history-table tr:hover td { background: #fff5f0; }
   .full-width-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
   .report-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
   .report-row:last-child { border-bottom: none; }
@@ -122,7 +123,7 @@
   .back-btn:hover { color: var(--text); }
 
   /* MODAL */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
   .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
   .modal-header { padding: 24px 24px 0; display: flex; justify-content: space-between; align-items: center; }
   .modal-title { font-size: 18px; font-weight: 700; }
@@ -131,10 +132,10 @@
   .modal-body { padding: 20px 24px 24px; }
   .form-group { margin-bottom: 16px; }
   .form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.06em; }
-  .form-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; transition: border 0.15s; }
+  .form-input { width: 100%; background: #f8f7f4; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; transition: border 0.15s; }
   .form-input:focus { border-color: var(--accent); }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; resize: vertical; min-height: 80px; transition: border 0.15s; }
+  .form-textarea { width: 100%; background: #f8f7f4; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); font-family: inherit; outline: none; resize: vertical; min-height: 80px; transition: border 0.15s; }
   .form-textarea:focus { border-color: var(--accent); }
   .modal-footer { display: flex; gap: 10px; justify-content: flex-end; padding-top: 8px; }
 
@@ -166,7 +167,7 @@
   .listing-private { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
   .listing-private-audit { background: rgba(167,139,250,0.1); color: var(--purple); border: 1px solid rgba(167,139,250,0.2); }
 
-  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 10px; padding: 14px 20px; font-size: 13px; color: var(--text); z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.4); animation: slideUp 0.2s ease; }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #ffffff; border: 1px solid var(--border2); border-radius: 10px; padding: 14px 20px; font-size: 13px; color: var(--text); z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,0.4); animation: slideUp 0.2s ease; }
   .toast.success { border-color: rgba(34,197,94,0.4); }
   .toast.error { border-color: rgba(239,68,68,0.4); }
   @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -521,6 +522,7 @@ function DetailView({ company, onBack }) {
             <span>👤 {company.ceo || '—'}</span>
             <span>👥 {company.employee_count || '—'}명</span>
             <span>🏭 {company.industry || '—'}</span>
+            {company.founded_date && <span>📅 {fmtDate(company.founded_date)}</span>}
           </div>
           <div style={{marginTop:10,display:'flex',flexWrap:'wrap',gap:4}}>
             {(company.tags||[]).map(t=><span key={t} className="tag sector">{t}</span>)}
@@ -540,28 +542,61 @@ function DetailView({ company, onBack }) {
       </div>
 
       {activeTab === 'overview' && (
-        <div className="detail-grid">
-          <div className="detail-section">
-            <div className="section-title">최신 재무실적</div>
-            {latestF ? <>
-              <div className="info-row"><span className="info-label">기준일</span><span className="info-value">{fmtDate(latestF.fiscal_date)} ({latestF.quarter})</span></div>
-              <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmt(latestF.revenue)}{prevF?.revenue && <span style={{fontSize:11,color:Number(latestF.revenue)>=Number(prevF.revenue)?'var(--green)':'var(--red)',marginLeft:8}}>{calcChange(latestF.revenue,prevF.revenue)}%</span>}</span></div>
-              <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit>=0?'var(--green)':'var(--red)'}}>{fmt(latestF.operating_profit)}</span></div>
-              <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmt(latestF.total_assets)}</span></div>
-              <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmt(latestF.net_assets)}</span></div>
-              {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value" style={{fontSize:12,maxWidth:'60%',textAlign:'right'}}>{latestF.memo}</span></div>}
-            </> : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
+        <div>
+          {/* 기업 기본 정보 표 */}
+          <div className="full-width-section" style={{marginBottom:20}}>
+            <div className="section-title">기업 기본 정보</div>
+            <table className="history-table">
+              <tbody>
+                <tr>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)',width:'15%'}}>설립일</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.founded_date ? fmtDate(company.founded_date) : '—'}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)',width:'15%'}}>소재지</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.location || '—'}</td>
+                </tr>
+                <tr>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>대표이사</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.ceo || '—'}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>임직원 수</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.employee_count || '—'}명</td>
+                </tr>
+                <tr>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>업종</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.industry || '—'}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>상장여부</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{getListingBadge(company.listing_status) || '—'}</td>
+                </tr>
+                <tr>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>M&A 현황</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{getStatusBadge(company.ma_status) || '—'}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>경로</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',fontSize:12}}>{company.inbound_outbound || '—'}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div className="detail-section">
-            <div className="section-title">기업가치 및 검토 현황</div>
-            {latestV && <>
-              <div className="info-row"><span className="info-label">기업가치 기준일</span><span className="info-value">{fmtDate(latestV.valuation_date)}</span></div>
-              <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono">{fmt(latestV.valuation)}</span></div>
-              <div className="info-row"><span className="info-label">P/E 멀티플</span><span className="info-value mono">{latestV.pe_multiple ? latestV.pe_multiple + 'x' : '—'}</span></div>
-            </>}
-            <div className="info-row"><span className="info-label">M&A 진행 현황</span><span className="info-value">{getStatusBadge(company.ma_status) || '—'}</span></div>
-            <div className="info-row"><span className="info-label">경로</span><span className="info-value" style={{fontSize:12}}>{company.inbound_outbound || '—'}</span></div>
-            <div className="info-row"><span className="info-label">설립일</span><span className="info-value">{company.founded_date ? fmtDate(company.founded_date) : '—'}</span></div>
+
+          {/* 재무실적 + 기업가치 */}
+          <div className="detail-grid">
+            <div className="detail-section">
+              <div className="section-title">최신 재무실적</div>
+              {latestF ? <>
+                <div className="info-row"><span className="info-label">기준일</span><span className="info-value">{fmtDate(latestF.fiscal_date)} ({latestF.quarter})</span></div>
+                <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmt(latestF.revenue)}{prevF?.revenue && <span style={{fontSize:11,color:Number(latestF.revenue)>=Number(prevF.revenue)?'var(--green)':'var(--red)',marginLeft:8}}>{calcChange(latestF.revenue,prevF.revenue)}%</span>}</span></div>
+                <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit>=0?'var(--green)':'var(--red)'}}>{fmt(latestF.operating_profit)}</span></div>
+                <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmt(latestF.total_assets)}</span></div>
+                <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmt(latestF.net_assets)}</span></div>
+                {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value" style={{fontSize:12,maxWidth:'60%',textAlign:'right'}}>{latestF.memo}</span></div>}
+              </> : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
+            </div>
+            <div className="detail-section">
+              <div className="section-title">기업가치</div>
+              {latestV ? <>
+                <div className="info-row"><span className="info-label">기준일</span><span className="info-value">{fmtDate(latestV.valuation_date)}</span></div>
+                <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono">{fmt(latestV.valuation)}</span></div>
+                <div className="info-row"><span className="info-label">P/E 멀티플</span><span className="info-value mono">{latestV.pe_multiple ? latestV.pe_multiple + 'x' : '—'}</span></div>
+              </> : <div style={{color:'var(--text3)',fontSize:13}}>기업가치 데이터가 없습니다</div>}
+            </div>
           </div>
         </div>
       )}
@@ -569,56 +604,330 @@ function DetailView({ company, onBack }) {
       {activeTab === 'financials' && (
         <div className="full-width-section">
           <div className="section-title">재무실적 이력 (누적)</div>
-          {financials.length > 0 ? (
-            <table className="history-table">
-              <thead><tr>
-                <th>분기</th><th>결산기준일</th><th>매출</th><th>영업이익</th><th>총자산</th><th>순자산</th><th>출처</th>
-              </tr></thead>
-              <tbody>{financials.map(f=>(
-                <tr key={f.id}>
-                  <td>{f.quarter || '—'}</td>
-                  <td>{fmtDate(f.fiscal_date)}</td>
-                  <td>{fmt(f.revenue)}</td>
-                  <td style={{color:f.operating_profit>=0?'var(--green)':'var(--red)'}}>{fmt(f.operating_profit)}</td>
-                  <td>{fmt(f.total_assets)}</td>
-                  <td>{fmt(f.net_assets)}</td>
-                  <td style={{fontFamily:'inherit',fontSize:12,color:'var(--text3)'}}>{f.source||'—'}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          ) : <div style={{color:'var(--text3)',fontSize:13}}>데이터가 없습니다</div>}
+          {financials.length > 0 ? (() => {
+            const sorted = [...financials].reverse();
+            const revenues = sorted.map(f => Number(f.revenue)||0);
+            const ops = sorted.map(f => Number(f.operating_profit)||0);
+            const tas = sorted.map(f => Number(f.total_assets)||0);
+            const nas = sorted.map(f => Number(f.net_assets)||0);
+            const maxPos = Math.max(...revenues, ...ops.filter(v=>v>0), 0);
+            const maxNeg = Math.abs(Math.min(...ops.filter(v=>v<0), 0));
+            const total = maxPos + maxNeg || 1;
+            const maxAsset = Math.max(...tas, ...nas.filter(v=>v>0), 1);
+
+            const MiniChart = ({data, scales, color, color2, xLabels}) => {
+              const W = 320; const H = 120; const pad = {l:52,r:10,t:20,b:24};
+              const innerW = W-pad.l-pad.r; const innerH = H-pad.t-pad.b;
+              const n = data[0].length;
+              const colW2 = Math.floor(innerW/n);
+              const bW = Math.min(16, Math.floor(colW2/2.8));
+              const gap = 3;
+              // 각 시리즈별 독립 스케일
+              const getScale = (idx) => {
+                const vals = data[idx];
+                const posMax = Math.max(...vals.filter(v=>v>0), 0);
+                const negMax = Math.abs(Math.min(...vals.filter(v=>v<0), 0));
+                return { posMax: posMax||1, negMax };
+              };
+              // 공유 0선 위치: 첫번째 시리즈 기준
+              const s0 = scales ? scales[0] : getScale(0);
+              const total0 = s0.posMax + s0.negMax;
+              const zeroY = pad.t + innerH * (s0.posMax / (total0||1));
+              // Y축 눈금 (첫번째 시리즈 기준)
+              const absMax0 = s0.posMax;
+              const mag = Math.pow(10, Math.floor(Math.log10(absMax0||1)));
+              const ti = absMax0 <= mag*2 ? mag : absMax0 <= mag*5 ? mag*2 : mag*5;
+              const posTicks = []; for(let v=ti; v<=s0.posMax*1.05; v+=ti) { if(posTicks.length<3) posTicks.push(v); }
+              const negTicks2 = []; for(let v=ti; v<=s0.negMax*1.05; v+=ti) { if(negTicks2.length<3) negTicks2.push(v); }
+              return (
+                <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:'block'}}>
+                  {posTicks.map(v => {
+                    const y = zeroY - (v/s0.posMax)*(zeroY-pad.t);
+                    return <g key={v}>
+                      <line x1={pad.l} y1={y} x2={W-pad.r} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3"/>
+                      <text x={pad.l-3} y={y+3} textAnchor="end" fontSize="8" fill="var(--text3)" fontFamily="DM Mono,monospace">{fmt(v)}</text>
+                    </g>;
+                  })}
+                  {negTicks2.map(v => {
+                    const y = zeroY + (v/(s0.negMax||1))*(H-pad.b-zeroY);
+                    return <g key={-v}>
+                      <line x1={pad.l} y1={y} x2={W-pad.r} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3"/>
+                      <text x={pad.l-3} y={y+3} textAnchor="end" fontSize="8" fill="var(--text3)" fontFamily="DM Mono,monospace">-{fmt(v)}</text>
+                    </g>;
+                  })}
+                  <line x1={pad.l} y1={zeroY} x2={W-pad.r} y2={zeroY} stroke="var(--border2)" strokeWidth="1.2"/>
+                  <text x={pad.l-3} y={zeroY+3} textAnchor="end" fontSize="8" fill="var(--text3)" fontFamily="DM Mono,monospace">0</text>
+                  {data[0].map((_, i) => {
+                    const colX = pad.l + i*colW2 + (colW2-(bW*data.length+gap*(data.length-1)))/2;
+                    return data.map((series, si) => {
+                      const v = Number(series[i])||0;
+                      const sc = scales ? scales[si] : getScale(si);
+                      const posH = zeroY - pad.t;
+                      const negH = H - pad.b - zeroY;
+                      const bH = v >= 0
+                        ? Math.max(Math.round((v/(sc.posMax||1))*posH), 2)
+                        : Math.max(Math.round((Math.abs(v)/(sc.negMax||1))*negH), 2);
+                      const bX = colX + si*(bW+gap);
+                      const bY = v >= 0 ? zeroY-bH : zeroY;
+                      const cl = si===0 ? color : color2||'rgba(255,106,0,0.38)';
+                      return <rect key={si} x={bX} y={bY} width={bW} height={bH} fill={cl} rx="2"/>;
+                    });
+                  })}
+                  {(xLabels||[]).map((lbl,i) => (
+                    <text key={i} x={pad.l+i*colW2+colW2/2} y={H-pad.b+12} textAnchor="middle" fontSize="8" fill="var(--text3)" fontFamily="DM Mono,monospace">{lbl}</text>
+                  ))}
+                </svg>
+              );
+            };
+
+            return (
+              <div style={{display:'flex',flexDirection:'column',gap:20}}>
+                {/* 섹션1: 손익 */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>손익 현황</div>
+                    <table className="history-table" style={{fontSize:12}}>
+                      <thead><tr>
+                        <th style={{textAlign:'left',fontSize:10}}>결산기준일</th>
+                        <th style={{fontSize:10}}>매출</th>
+                        <th style={{fontSize:10}}>영업이익</th>
+                        <th style={{fontSize:10}}>영업이익률</th>
+                      </tr></thead>
+                      <tbody>{financials.map((f,i) => {
+                        const prev = financials[i+1];
+                        const revChg = prev?.revenue ? calcChange(f.revenue, prev.revenue) : null;
+                        const opChg = prev?.operating_profit && prev.operating_profit !== 0 ? calcChange(f.operating_profit, prev.operating_profit) : null;
+                        const opMargin = f.revenue && f.revenue !== 0 ? ((Number(f.operating_profit)||0) / Number(f.revenue) * 100).toFixed(1) : null;
+                        return (
+                        <tr key={f.id}>
+                          <td style={{textAlign:'left',fontFamily:'DM Mono,monospace',fontSize:11}}>{fmtDate(f.fiscal_date)}</td>
+                          <td style={{fontSize:12}}>
+                            {fmt(f.revenue)}
+                            {revChg && <span style={{fontSize:9,color:Number(revChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(revChg)>=0?'▲':'▼'}{Math.abs(revChg)}%</span>}
+                          </td>
+                          <td style={{fontSize:12}}>
+                            <span style={{color:f.operating_profit==null?'var(--text3)':f.operating_profit>=0?'var(--green)':'var(--red)'}}>{fmt(f.operating_profit)}</span>
+                            {opChg && <span style={{fontSize:9,color:Number(opChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(opChg)>=0?'▲':'▼'}{Math.abs(opChg)}%</span>}
+                          </td>
+                          <td style={{fontSize:12,color:opMargin===null?'var(--text3)':Number(opMargin)>=0?'var(--green)':'var(--red)',fontFamily:'DM Mono,monospace'}}>
+                            {opMargin !== null ? opMargin + '%' : '—'}
+                          </td>
+                        </tr>
+                        );
+                      })}</tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>매출 / 영업이익 추이</div>
+                    {(() => {
+                      const revScale = { posMax: Math.max(...revenues,1), negMax: 0 };
+                      const opPosMax = Math.max(...ops.filter(v=>v>0), 0);
+                      const opNegMax = Math.abs(Math.min(...ops.filter(v=>v<0), 0));
+                      const opScale = { posMax: opPosMax||opNegMax||1, negMax: opNegMax };
+                      // 0선은 revenues 기준, op는 독립 스케일
+                      const sharedPosMax = Math.max(revScale.posMax, opPosMax);
+                      const sharedNegMax = opNegMax;
+                      const s0 = { posMax: sharedPosMax, negMax: sharedNegMax };
+                      return <MiniChart
+                        data={[revenues, ops]}
+                        scales={[s0, s0]}
+                        color="var(--accent)" color2="rgba(255,106,0,0.38)"
+                        xLabels={sorted.map(f=>new Date(f.fiscal_date).getFullYear())}
+                      />;
+                    })()}
+                    <div style={{display:'flex',gap:14,marginTop:6,fontSize:11,color:'var(--text2)'}}>
+                      <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/> 매출</span>
+                      <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'rgba(255,106,0,0.38)',display:'inline-block'}}/> 영업이익</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 구분선 */}
+                <div style={{borderTop:'1px solid var(--border)'}}/>
+
+                {/* 섹션2: 재무상태 */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>재무상태</div>
+                    <table className="history-table" style={{fontSize:12}}>
+                      <thead><tr>
+                        <th style={{textAlign:'left',fontSize:10}}>결산기준일</th>
+                        <th style={{fontSize:10}}>총자산</th>
+                        <th style={{fontSize:10}}>순자산</th>
+                        <th style={{fontSize:10}}>출처</th>
+                      </tr></thead>
+                      <tbody>{financials.map(f => (
+                        <tr key={f.id}>
+                          <td style={{textAlign:'left',fontFamily:'DM Mono,monospace',fontSize:11}}>{fmtDate(f.fiscal_date)}</td>
+                          <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
+                          <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
+                          <td style={{fontFamily:'inherit',fontSize:11,color:'var(--text3)'}}>{f.source||'—'}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>총자산 / 순자산 추이</div>
+                    {(() => {
+                      const taMax = Math.max(...tas, 1);
+                      const naPos = Math.max(...nas.filter(v=>v>0), 0);
+                      const naNeg = Math.abs(Math.min(...nas.filter(v=>v<0), 0));
+                      const assetScale = { posMax: Math.max(taMax, naPos), negMax: naNeg };
+                      return <MiniChart
+                        data={[tas, nas]}
+                        scales={[assetScale, assetScale]}
+                        color="var(--accent)" color2="rgba(255,106,0,0.38)"
+                        xLabels={sorted.map(f=>new Date(f.fiscal_date).getFullYear())}
+                      />;
+                    })()}
+                    <div style={{display:'flex',gap:14,marginTop:6,fontSize:11,color:'var(--text2)'}}>
+                      <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/> 총자산</span>
+                      <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'rgba(255,106,0,0.38)',display:'inline-block'}}/> 순자산</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })() : <div style={{color:'var(--text3)',fontSize:13}}>데이터가 없습니다</div>}
         </div>
       )}
-
       {activeTab === 'valuations' && (
         <div className="full-width-section">
           <div className="section-title">기업가치 이력 (누적)</div>
-          {valuations.length > 0 ? (
-            <table className="history-table">
-              <thead><tr><th>기준일</th><th>기업가치</th><th>P/E 멀티플</th><th>메모</th></tr></thead>
-              <tbody>{valuations.map(v=>(
-                <tr key={v.id}>
-                  <td>{fmtDate(v.valuation_date)}</td>
-                  <td>{fmt(v.valuation)}</td>
-                  <td>{v.pe_multiple ? v.pe_multiple + 'x' : '—'}</td>
-                  <td style={{fontFamily:'inherit',fontSize:12,color:'var(--text3)'}}>{v.memo||'—'}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          ) : <div style={{color:'var(--text3)',fontSize:13}}>데이터가 없습니다</div>}
+          {valuations.length > 0 ? (() => {
+            const sorted = [...valuations].sort((a,b) => new Date(a.valuation_date) - new Date(b.valuation_date));
+            const latest = sorted[sorted.length-1];
+            const maxVal = Math.max(...sorted.map(v => Number(v.valuation)||0), 1);
+            const magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
+            const ti = maxVal <= magnitude*2 ? magnitude/2 : maxVal <= magnitude*5 ? magnitude : magnitude*2;
+            const ticks = [];
+            for(let v=ti; v<=maxVal*1.15; v+=ti) ticks.push(v);
+            const yAxisW = 52; const chartH = 160; const padT = 20; const padB = 28; const padR = 12;
+            const innerH = chartH - padT - padB;
+            const colW = Math.max(60, Math.floor((500) / sorted.length));
+            const svgW = Math.max(sorted.length * colW + yAxisW + padR, 400);
+            const barW = Math.min(32, colW - 16);
+            return (
+              <div>
+                {/* 요약 헤더 */}
+                <div style={{display:'flex',gap:32,marginBottom:20,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
+                  <div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>최신 기업가치</div>
+                    <div style={{fontSize:20,fontWeight:700,fontFamily:'DM Mono,monospace',color:'var(--accent)'}}>{fmt(latest.valuation)}</div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmtDate(latest.valuation_date)} · {latest.memo||'—'}</div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>기업가치 건수</div>
+                    <div style={{fontSize:20,fontWeight:700,fontFamily:'DM Mono,monospace',color:'var(--text)'}}>{sorted.length}건</div>
+                  </div>
+                  {sorted.length >= 2 && (() => {
+                    const first = sorted[0];
+                    const chg = calcChange(latest.valuation, first.valuation);
+                    return (
+                      <div>
+                        <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>초기 대비 변화</div>
+                        <div style={{fontSize:20,fontWeight:700,fontFamily:'DM Mono,monospace',color:Number(chg)>=0?'var(--green)':'var(--red)'}}>
+                          {Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%
+                        </div>
+                        <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmt(first.valuation)} → {fmt(latest.valuation)}</div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                {/* 차트 */}
+                <div style={{overflowX:'auto'}}>
+                  <svg width="100%" viewBox={`0 0 ${svgW} ${chartH}`} style={{display:'block',minWidth:300}}>
+                    {/* Y축 눈금 */}
+                    {ticks.map(v => {
+                      const y = padT + innerH - Math.round((v/maxVal/1.15)*innerH);
+                      return (
+                        <g key={v}>
+                          <line x1={yAxisW} y1={y} x2={svgW-padR} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3"/>
+                          <text x={yAxisW-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--text3)" fontFamily="DM Mono,monospace">{fmt(v)}</text>
+                        </g>
+                      );
+                    })}
+                    {/* X축 기준선 */}
+                    <line x1={yAxisW} y1={padT+innerH} x2={svgW-padR} y2={padT+innerH} stroke="var(--border2)" strokeWidth="1"/>
+                    {/* 막대 */}
+                    {sorted.map((v, i) => {
+                      const val = Number(v.valuation)||0;
+                      const bH = Math.max(Math.round((val/maxVal/1.15)*innerH), 2);
+                      const colX = yAxisW + i*colW + (colW-barW)/2;
+                      const bY = padT + innerH - bH;
+                      const isLatest = i === sorted.length-1;
+                      return (
+                        <g key={v.id}>
+                          <rect x={colX} y={bY} width={barW} height={bH}
+                            fill={isLatest ? 'var(--accent)' : 'rgba(255,106,0,0.35)'}
+                            rx="3"/>
+                          {/* 수치 레이블 */}
+                          <text x={colX+barW/2} y={bY-4} textAnchor="middle" fontSize="9" fill="var(--text2)" fontFamily="DM Mono,monospace">{fmt(val)}</text>
+                          {/* X축 날짜 */}
+                          <text x={colX+barW/2} y={padT+innerH+14} textAnchor="middle" fontSize="8" fill="var(--text3)" fontFamily="DM Mono,monospace">
+                            {new Date(v.valuation_date).getFullYear()}.{String(new Date(v.valuation_date).getMonth()+1).padStart(2,'0')}
+                          </text>
+                          {/* 거래유형 */}
+                          {v.memo && <text x={colX+barW/2} y={padT+innerH+24} textAnchor="middle" fontSize="7" fill="var(--text3)" fontFamily="inherit">{v.memo}</text>}
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+                {/* 상세 테이블 */}
+                <div style={{marginTop:20}}>
+                  <table className="history-table">
+                    <thead><tr>
+                      <th style={{textAlign:'left'}}>기준일</th>
+                      <th>기업가치</th>
+                      <th>거래 유형</th>
+                      <th>P/E</th>
+                      <th style={{textAlign:'left'}}>출처</th>
+                    </tr></thead>
+                    <tbody>{sorted.slice().reverse().map(v => (
+                      <tr key={v.id}>
+                        <td style={{textAlign:'left',fontFamily:'DM Mono,monospace'}}>{fmtDate(v.valuation_date)}</td>
+                        <td style={{fontWeight:500}}>{fmt(v.valuation)}</td>
+                        <td style={{fontFamily:'inherit',fontSize:12,color:'var(--text2)'}}>{v.memo||'—'}</td>
+                        <td>{v.pe_multiple ? v.pe_multiple + 'x' : '—'}</td>
+                        <td style={{textAlign:'left'}}>
+                          {v.source_link
+                            ? <a href={v.source_link} target="_blank" rel="noreferrer" className="report-link">출처 →</a>
+                            : <span style={{fontSize:12,color:'var(--text3)'}}>—</span>}
+                        </td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })() : <div style={{color:'var(--text3)',fontSize:13,padding:'20px 0'}}>기업가치 데이터가 없습니다</div>}
         </div>
       )}
 
       {activeTab === 'reports' && (
         <div className="full-width-section">
           <div className="section-title">보고 이력</div>
-          {reports.length > 0 ? reports.map(r=>(
-            <div key={r.id} className="report-row">
-              <span className="report-date">{fmtDate(r.report_date)}</span>
-              <span className="report-type">{r.report_type || '—'} {r.report_target && `· ${r.report_target}`}</span>
-              {r.ppt_link ? <a className="report-link" href={r.ppt_link} target="_blank" rel="noreferrer">PPT 보기 →</a> : <span style={{fontSize:12,color:'var(--text3)'}}>링크 없음</span>}
-            </div>
-          )) : <div style={{color:'var(--text3)',fontSize:13}}>보고 이력이 없습니다</div>}
+          {reports.length > 0 ? (
+            <table className="history-table">
+              <thead><tr>
+                <th style={{textAlign:'left'}}>보고 날짜</th>
+                <th style={{textAlign:'left'}}>유형</th>
+                <th style={{textAlign:'left'}}>보고 대상</th>
+                <th style={{textAlign:'left'}}>PPT</th>
+                <th style={{textAlign:'left'}}>비고</th>
+              </tr></thead>
+              <tbody>{reports.map(r=>(
+                <tr key={r.id}>
+                  <td style={{textAlign:'left',fontFamily:'DM Mono,monospace'}}>{fmtDate(r.report_date)}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
+                  <td style={{textAlign:'left'}}>{r.ppt_link ? <a className="report-link" href={r.ppt_link} target="_blank" rel="noreferrer">PPT 보기 →</a> : <span style={{color:'var(--text3)'}}>—</span>}</td>
+                  <td style={{textAlign:'left',fontFamily:'inherit',fontSize:12,color:'var(--text3)'}}>{r.notes || '—'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          ) : <div style={{color:'var(--text3)',fontSize:13,padding:'20px 0'}}>보고 이력이 없습니다. "+ 보고 이력" 버튼으로 추가해주세요.</div>}
         </div>
       )}
     </div>
@@ -677,20 +986,12 @@ function ListView({ onSelect }) {
     return 0;
   });
 
-  const profitable = companies.filter(c => (financials[c.id]?.operating_profit||0) > 0).length;
-  const totalRevenue = Object.values(financials).filter(f=>!String(f.company_id).includes('_')).reduce((s,f)=>s+(Number(f.revenue)||0),0);
 
   return (
     <div>
       {toast && <Toast {...toast} onClose={()=>setToast(null)}/>}
       {showUpload && <ExcelUpload onClose={()=>setShowUpload(false)} onDone={()=>{load();setToast({msg:'엑셀 데이터가 업데이트됐어요',type:'success'});}}/>}
 
-      <div className="stats-bar">
-        <div className="stat-card"><div className="stat-label">전체 기업</div><div className="stat-value">{companies.length}<span style={{fontSize:14,color:'var(--text3)'}}>개</span></div></div>
-        <div className="stat-card"><div className="stat-label">흑자 기업</div><div className="stat-value green">{profitable}<span style={{fontSize:14,color:'var(--text3)'}}>개</span></div></div>
-        <div className="stat-card"><div className="stat-label">적자 기업</div><div className="stat-value red">{companies.length-profitable}<span style={{fontSize:14,color:'var(--text3)'}}>개</span></div></div>
-        <div className="stat-card"><div className="stat-label">합산 매출</div><div className="stat-value">{fmt(totalRevenue)}</div></div>
-      </div>
 
       <div className="toolbar">
         <div className="search-box">
