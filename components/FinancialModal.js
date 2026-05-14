@@ -1,0 +1,88 @@
+// ─── FINANCIAL UPDATE MODAL ───────────────────────────────
+function FinancialModal({ company, onClose, onSave }) {
+  const { useState } = React;
+  const [form, setForm] = useState({
+    quarter: '', fiscal_date: '', revenue: '', operating_profit: '',
+    total_assets: '', net_assets: '', source: '', memo: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const set = (k, v) => setForm(f => ({...f, [k]: v}));
+
+  async function submit() {
+    if (!form.fiscal_date || !form.quarter) return alert('분기와 결산기준일을 입력해주세요');
+    setLoading(true);
+    try {
+      await companyService.insertFinancial({
+        company_id: company.id,
+        quarter: form.quarter,
+        fiscal_date: form.fiscal_date,
+        revenue: form.revenue || null,
+        operating_profit: form.operating_profit || null,
+        total_assets: form.total_assets || null,
+        net_assets: form.net_assets || null,
+        source: form.source || null,
+        memo: form.memo || null,
+      });
+      onSave(); onClose();
+    } catch(e) {
+      alert('저장 실패: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <div className="modal-title">수치 업데이트 · {company.name}</div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">분기</label>
+              <input className="form-input" placeholder="예: 2025 Q1" value={form.quarter} onChange={e=>set('quarter',e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">결산기준일</label>
+              <input type="date" className="form-input" value={form.fiscal_date} onChange={e=>set('fiscal_date',e.target.value)}/>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">매출 (억원)</label>
+              <input type="number" className="form-input" placeholder="0" value={form.revenue} onChange={e=>set('revenue',e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">영업이익 (억원)</label>
+              <input type="number" className="form-input" placeholder="0" value={form.operating_profit} onChange={e=>set('operating_profit',e.target.value)}/>
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">총자산 (억원)</label>
+              <input type="number" className="form-input" placeholder="0" value={form.total_assets} onChange={e=>set('total_assets',e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">순자산 (억원)</label>
+              <input type="number" className="form-input" placeholder="0" value={form.net_assets} onChange={e=>set('net_assets',e.target.value)}/>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">출처</label>
+            <input className="form-input" placeholder="예: 다트전자공시, 크레탑" value={form.source} onChange={e=>set('source',e.target.value)}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">메모 (변화 이유)</label>
+            <textarea className="form-textarea" placeholder="주요 변화 내용, 특이사항 등" value={form.memo} onChange={e=>set('memo',e.target.value)}/>
+          </div>
+          <div className="modal-footer">
+            <button className="btn btn-secondary" onClick={onClose}>취소</button>
+            <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? '저장 중...' : '저장'}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
