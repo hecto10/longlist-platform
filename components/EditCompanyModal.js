@@ -2,37 +2,97 @@
 function EditCompanyModal({ company, onClose, onSave, allTags }) {
   const { useState } = React;
   const [form, setForm] = useState({
-    name: company.name || '',
-    founded_date: company.founded_date || '',
-    location: company.location || '',
-    ceo: company.ceo || '',
-    employee_count: company.employee_count || '',
-    listing_status: company.listing_status || '',
-    industry: company.industry || '',
-    ma_status: company.ma_status || 'X',
+    name:             company.name || '',
+    founded_date:     company.founded_date || '',
+    location:         company.location || '',
+    ceo:              company.ceo || '',
+    employee_count:   company.employee_count || '',
+    listing_status:   company.listing_status || '',
+    industry:         company.industry || '',
+    ma_status:        company.ma_status || 'X',
     inbound_outbound: company.inbound_outbound || '',
   });
   const [selectedTags, setSelectedTags] = useState(company.tags || []);
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
+  // ── 변경된 필드 감지 ─────────────────────────────────────
+  // 스칼라 필드: form의 각 key와 company 원본값을 비교합니다.
+  // 태그 필드:   배열을 JSON 문자열로 직렬화한 뒤 비교합니다.
+  function buildChanges() {
+    const changes = [];
+
+    // 스칼라 필드 목록 (field_name → company 원본 key와 동일)
+    const scalarFields = [
+      { key: 'name',             label: '기업명' },
+      { key: 'founded_date',     label: '설립일' },
+      { key: 'location',         label: '소재지' },
+      { key: 'ceo',              label: '대표이사' },
+      { key: 'employee_count',   label: '임직원 수' },
+      { key: 'listing_status',   label: '상장여부' },
+      { key: 'industry',         label: '업종' },
+      { key: 'ma_status',        label: 'M&A 현황' },
+      { key: 'inbound_outbound', label: '인바운드/아웃바운드 경로' },
+    ];
+
+    for (const { key, label } of scalarFields) {
+      const oldVal = company[key] ?? '';
+      const newVal = form[key] ?? '';
+      // 양쪽 모두 빈 문자열 / null 이면 변경 없음으로 처리
+      const normalize = v => (v == null ? '' : String(v));
+      if (normalize(oldVal) !== normalize(newVal)) {
+        changes.push({
+          field_name: label,
+          old_value:  normalize(oldVal) || null,
+          new_value:  normalize(newVal) || null,
+        });
+      }
+    }
+
+    // 태그 비교 (순서 무관 — 정렬 후 JSON 비교)
+    const oldTags = JSON.stringify([...(company.tags || [])].sort());
+    const newTags = JSON.stringify([...selectedTags].sort());
+    if (oldTags !== newTags) {
+      changes.push({
+        field_name: '태그',
+        old_value:  (company.tags || []).join(', ') || null,
+        new_value:  selectedTags.join(', ') || null,
+      });
+    }
+
+    return changes;
+  }
+
   async function submit() {
     if (!form.name.trim()) return alert('기업명을 입력해주세요');
     setLoading(true);
     try {
+      // 1) 변경 목록 계산
+      const changes = buildChanges();
+
+      // 2) companies 테이블 update (기존과 동일)
       await companyService.update(company.id, {
-        name: form.name.trim(),
-        founded_date: form.founded_date || null,
-        location: form.location || null,
-        ceo: form.ceo || null,
-        employee_count: form.employee_count || null,
-        listing_status: form.listing_status || null,
-        industry: form.industry || null,
-        tags: selectedTags,
-        ma_status: form.ma_status || 'X',
+        name:             form.name.trim(),
+        founded_date:     form.founded_date || null,
+        location:         form.location || null,
+        ceo:              form.ceo || null,
+        employee_count:   form.employee_count || null,
+        listing_status:   form.listing_status || null,
+        industry:         form.industry || null,
+        tags:             selectedTags,
+        ma_status:        form.ma_status || 'X',
         inbound_outbound: form.inbound_outbound || null,
       });
-      onSave(); onClose();
+
+      // 3) 변경된 항목이 있을 때만 이력 저장
+      //    changed_by: localStorage에 userName이 있으면 사용, 없으면 'unknown'
+      if (changes.length > 0) {
+        const changedBy = (typeof localStorage !== 'undefined' && localStorage.getItem('userName')) || 'unknown';
+        await companyService.logChanges(company.id, changes, changedBy);
+      }
+
+      onSave();
+      onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
     } finally {
