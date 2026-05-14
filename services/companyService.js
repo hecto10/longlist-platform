@@ -116,22 +116,15 @@ const companyService = {
     if (error) throw error;
   },
 
-  // 엑셀 업로드용 upsert
+// 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
       .from('companies')
       .upsert(payload, { onConflict: 'name' });
     if (error) throw error;
   },
-};
 
-// ── 수정 이력 저장 ────────────────────────────────────────
-  // 변경된 필드만 company_change_logs 테이블에 row별로 insert합니다.
-  // EditCompanyModal에서 호출합니다.
-  //
-  // @param {string} companyId  - companies.id (uuid)
-  // @param {Array}  changes    - [{ field_name, old_value, new_value }, ...]
-  // @param {string} changedBy  - 수정자 이름 (localStorage.userName 또는 'unknown')
+  // ── 수정 이력 저장 ────────────────────────────────────────
   async logChanges(companyId, changes, changedBy = 'unknown') {
     if (!changes || changes.length === 0) return;
     const rows = changes.map(c => ({
@@ -144,14 +137,11 @@ const companyService = {
     const { error } = await supabase
       .from('company_change_logs')
       .insert(rows);
-    // 이력 저장 실패는 메인 저장 흐름을 막지 않도록 throw하지 않고 콘솔에만 기록합니다.
     if (error) console.warn('[companyService.logChanges] 이력 저장 실패:', error.message);
   },
 
   // ── 관리자 전용 조회 함수 (현재 UI에서는 호출하지 않음) ──────
-  // 추후 관리자 모드에서 아래 함수를 사용해 수정 이력을 조회하세요.
 
-  // 특정 기업의 전체 수정 이력 조회 (최신순)
   // async fetchChangeLogsByCompany(companyId) {
   //   const { data, error } = await supabase
   //     .from('company_change_logs')
@@ -162,7 +152,6 @@ const companyService = {
   //   return data || [];
   // },
 
-  // 전체 수정 이력 조회 (최신 N건, 관리자 대시보드용)
   // async fetchRecentChangeLogs(limit = 50) {
   //   const { data, error } = await supabase
   //     .from('company_change_logs')
@@ -173,7 +162,6 @@ const companyService = {
   //   return data || [];
   // },
 
-  // 특정 수정자의 이력 조회
   // async fetchChangeLogsByUser(changedBy) {
   //   const { data, error } = await supabase
   //     .from('company_change_logs')
@@ -183,3 +171,4 @@ const companyService = {
   //   if (error) throw error;
   //   return data || [];
   // },
+};
