@@ -1,7 +1,14 @@
-// ─── VALUATION MODAL ─────────────────────────────────────
-function ValuationModal({ company, onClose, onSave }) {
+// ─── VALUATION MODAL (신규 + 수정 공용) ──────────────────
+function ValuationModal({ company, record, onClose, onSave }) {
   const { useState } = React;
-  const [form, setForm] = useState({ valuation_date: '', valuation: '', pe_multiple: '', memo: '' });
+  const isEdit = !!record;
+
+  const [form, setForm] = useState({
+    valuation_date: isEdit ? (record.valuation_date ?? '') : '',
+    valuation:      isEdit ? (record.valuation      ?? '') : '',
+    pe_multiple:    isEdit ? (record.pe_multiple     ?? '') : '',
+    memo:           isEdit ? (record.memo            ?? '') : '',
+  });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
@@ -9,13 +16,17 @@ function ValuationModal({ company, onClose, onSave }) {
     if (!form.valuation_date) return alert('기준일을 입력해주세요');
     setLoading(true);
     try {
-      await companyService.insertValuation({
-        company_id: company.id,
+      const payload = {
         valuation_date: form.valuation_date,
-        valuation: form.valuation || null,
-        pe_multiple: form.pe_multiple || null,
-        memo: form.memo || null,
-      });
+        valuation:      form.valuation   !== '' ? form.valuation   : null,
+        pe_multiple:    form.pe_multiple !== '' ? form.pe_multiple : null,
+        memo:           form.memo        || null,
+      };
+      if (isEdit) {
+        await companyService.updateValuation(record.id, payload);
+      } else {
+        await companyService.insertValuation({ company_id: company.id, ...payload });
+      }
       onSave(); onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
@@ -28,7 +39,9 @@ function ValuationModal({ company, onClose, onSave }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">기업가치 업데이트 · {company.name}</div>
+          <div className="modal-title">
+            {isEdit ? '기업가치 수정' : '기업가치 업데이트'} · {company.name}
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
@@ -52,7 +65,9 @@ function ValuationModal({ company, onClose, onSave }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
-            <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? '저장 중...' : '저장'}</button>
+            <button className="btn btn-primary" onClick={submit} disabled={loading}>
+              {loading ? '저장 중...' : isEdit ? '수정 저장' : '저장'}
+            </button>
           </div>
         </div>
       </div>

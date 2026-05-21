@@ -5,7 +5,10 @@ function DetailView({ company, onBack }) {
   const [valuations, setValuations] = useState([]);
   const [reports, setReports] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
+  // modal: null | { type: 'edit'|'financial'|'valuation'|'report', record: object|null }
   const [modal, setModal] = useState(null);
+  const openModal = (type, record = null) => setModal({ type, record });
+  const closeModal = () => setModal(null);
   const [toast, setToast] = useState(null);
   const [allTagsForEdit, setAllTagsForEdit] = useState([]);
 
@@ -37,33 +40,36 @@ function DetailView({ company, onBack }) {
   return (
     <div>
       {toast && <Toast {...toast} onClose={()=>setToast(null)}/>}
-      {modal === 'edit' && (
+      {modal?.type === 'edit' && (
         <EditCompanyModal
           company={company}
-          onClose={()=>setModal(null)}
+          onClose={closeModal}
           onSave={()=>{ load(); showToast('기업 정보가 수정됐어요'); }}
           allTags={allTagsForEdit}
         />
       )}
-      {modal === 'financial' && (
+      {modal?.type === 'financial' && (
         <FinancialModal
           company={company}
-          onClose={()=>setModal(null)}
-          onSave={()=>{ load(); showToast('재무실적이 저장됐어요'); }}
+          record={modal.record}
+          onClose={closeModal}
+          onSave={()=>{ load(); showToast(modal.record ? '재무실적이 수정됐어요' : '재무실적이 저장됐어요'); }}
         />
       )}
-      {modal === 'valuation' && (
+      {modal?.type === 'valuation' && (
         <ValuationModal
           company={company}
-          onClose={()=>setModal(null)}
-          onSave={()=>{ load(); showToast('기업가치가 저장됐어요'); }}
+          record={modal.record}
+          onClose={closeModal}
+          onSave={()=>{ load(); showToast(modal.record ? '기업가치가 수정됐어요' : '기업가치가 저장됐어요'); }}
         />
       )}
-      {modal === 'report' && (
+      {modal?.type === 'report' && (
         <ReportModal
           company={company}
-          onClose={()=>setModal(null)}
-          onSave={()=>{ load(); showToast('보고 이력이 저장됐어요'); }}
+          record={modal.record}
+          onClose={closeModal}
+          onSave={()=>{ load(); showToast(modal.record ? '보고 이력이 수정됐어요' : '보고 이력이 저장됐어요'); }}
         />
       )}
 
@@ -85,10 +91,10 @@ function DetailView({ company, onBack }) {
           </div>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button className="btn-edit" onClick={()=>setModal('edit')}>✎ 기업 수정</button>
-          <button className="btn btn-secondary" onClick={()=>setModal('financial')}>+ 재무실적</button>
-          <button className="btn btn-secondary" onClick={()=>setModal('valuation')}>+ 기업가치</button>
-          <button className="btn btn-secondary" onClick={()=>setModal('report')}>+ 보고 이력</button>
+          <button className="btn-edit" onClick={()=>openModal('edit')}>✎ 기업 수정</button>
+          <button className="btn btn-secondary" onClick={()=>openModal('financial')}>+ 재무실적</button>
+          <button className="btn btn-secondary" onClick={()=>openModal('valuation')}>+ 기업가치</button>
+          <button className="btn btn-secondary" onClick={()=>openModal('report')}>+ 보고 이력</button>
         </div>
       </div>
 
@@ -191,6 +197,7 @@ function DetailView({ company, onBack }) {
                         <th style={{fontSize:10}}>매출</th>
                         <th style={{fontSize:10}}>영업이익</th>
                         <th style={{fontSize:10}}>영업이익률</th>
+                        <th style={{fontSize:10}}></th>
                       </tr></thead>
                       <tbody>{financials.map((f,i) => {
                         const prev = financials[i+1];
@@ -210,6 +217,9 @@ function DetailView({ company, onBack }) {
                             </td>
                             <td style={{fontSize:12,color:opMargin===null?'var(--text3)':Number(opMargin)<0?'var(--red)':'var(--text)',fontFamily:'MaruBuri,sans-serif'}}>
                               {opMargin !== null ? opMargin + '%' : '—'}
+                            </td>
+                            <td style={{textAlign:'right'}}>
+                              <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('financial',f)}>수정</button>
                             </td>
                           </tr>
                         );
@@ -248,6 +258,7 @@ function DetailView({ company, onBack }) {
                         <th style={{fontSize:10}}>총자산</th>
                         <th style={{fontSize:10}}>순자산</th>
                         <th style={{fontSize:10}}>출처</th>
+                        <th style={{fontSize:10}}></th>
                       </tr></thead>
                       <tbody>{financials.map(f => (
                         <tr key={f.id}>
@@ -255,6 +266,9 @@ function DetailView({ company, onBack }) {
                           <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
                           <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
                           <td style={{fontFamily:'inherit',fontSize:11,color:'var(--text3)'}}>{f.source||'—'}</td>
+                          <td style={{textAlign:'right'}}>
+                            <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('financial',f)}>수정</button>
+                          </td>
                         </tr>
                       ))}</tbody>
                     </table>
@@ -359,8 +373,8 @@ function DetailView({ company, onBack }) {
                   </svg>
                 </div>
                 <div style={{marginTop:20,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden'}}>
-                  <div style={{display:'grid',gridTemplateColumns:'120px 100px 80px 160px 1fr',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
-                    {['기준일','기업가치','P/E','거래 유형','출처'].map((h,i)=>(
+                  <div style={{display:'grid',gridTemplateColumns:'120px 100px 80px 160px 1fr 60px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
+                    {['기준일','기업가치','P/E','거래 유형','출처',''].map((h,i)=>(
                       <div key={i} style={{padding:'9px 14px',fontSize:11,fontWeight:600,color:'var(--text3)',letterSpacing:'0.06em',textAlign:'center'}}>{h}</div>
                     ))}
                   </div>
@@ -382,7 +396,7 @@ function DetailView({ company, onBack }) {
                       ? (Number(v.valuation) / Number(nearestF.operating_profit)).toFixed(1)
                       : null;
                     return (
-                      <div key={v.id} style={{display:'grid',gridTemplateColumns:'120px 100px 80px 160px 1fr',borderBottom:idx<sorted.length-1?'1px solid var(--border)':'none',background:'var(--bg2)'}}>
+                      <div key={v.id} style={{display:'grid',gridTemplateColumns:'120px 100px 80px 160px 1fr 60px',borderBottom:idx<sorted.length-1?'1px solid var(--border)':'none',background:'var(--bg2)'}}>
                         <div style={cs}>{fmtDate(v.valuation_date)}</div>
                         <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
@@ -393,6 +407,9 @@ function DetailView({ company, onBack }) {
                             : textSource
                               ? <span style={{color:'var(--text2)'}}>{textSource}</span>
                               : <span style={{color:'var(--text3)'}}>—</span>}
+                        </div>
+                        <div style={{...cs}}>
+                          <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('valuation',v)}>수정</button>
                         </div>
                       </div>
                     );
@@ -422,6 +439,7 @@ function DetailView({ company, onBack }) {
                     <th style={{textAlign:'left'}}>보고 대상</th>
                     <th style={{textAlign:'left'}}>PPT</th>
                     <th style={{textAlign:'left'}}>비고</th>
+                    <th></th>
                   </tr></thead>
                   <tbody>{reports.map(r=>(
                     <tr key={r.id}>
@@ -430,6 +448,9 @@ function DetailView({ company, onBack }) {
                       <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
                       <td style={{textAlign:'left'}}>{r.ppt_link ? <a className="report-link" href={r.ppt_link} target="_blank" rel="noreferrer">PPT 보기 →</a> : <span style={{color:'var(--text3)'}}>—</span>}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',fontSize:12,color:'var(--text3)'}}>{r.notes || '—'}</td>
+                      <td style={{textAlign:'right'}}>
+                        <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('report',r)}>수정</button>
+                      </td>
                     </tr>
                   ))}</tbody>
                 </table>

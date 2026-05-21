@@ -1,7 +1,15 @@
-// ─── REPORT MODAL ────────────────────────────────────────
-function ReportModal({ company, onClose, onSave }) {
+// ─── REPORT MODAL (신규 + 수정 공용) ─────────────────────
+function ReportModal({ company, record, onClose, onSave }) {
   const { useState } = React;
-  const [form, setForm] = useState({ report_date: '', report_type: '', report_target: '', ppt_link: '', notes: '' });
+  const isEdit = !!record;
+
+  const [form, setForm] = useState({
+    report_date:   isEdit ? (record.report_date   ?? '') : '',
+    report_type:   isEdit ? (record.report_type   ?? '') : '',
+    report_target: isEdit ? (record.report_target ?? '') : '',
+    ppt_link:      isEdit ? (record.ppt_link      ?? '') : '',
+    notes:         isEdit ? (record.notes         ?? '') : '',
+  });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
@@ -9,14 +17,18 @@ function ReportModal({ company, onClose, onSave }) {
     if (!form.report_date) return alert('보고 날짜를 입력해주세요');
     setLoading(true);
     try {
-      await companyService.insertReport({
-        company_id: company.id,
-        report_date: form.report_date,
-        report_type: form.report_type || null,
+      const payload = {
+        report_date:   form.report_date,
+        report_type:   form.report_type   || null,
         report_target: form.report_target || null,
-        ppt_link: form.ppt_link || null,
-        notes: form.notes || null,
-      });
+        ppt_link:      form.ppt_link      || null,
+        notes:         form.notes         || null,
+      };
+      if (isEdit) {
+        await companyService.updateReport(record.id, payload);
+      } else {
+        await companyService.insertReport({ company_id: company.id, ...payload });
+      }
       onSave(); onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
@@ -29,7 +41,9 @@ function ReportModal({ company, onClose, onSave }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">보고 이력 추가 · {company.name}</div>
+          <div className="modal-title">
+            {isEdit ? '보고 이력 수정' : '보고 이력 추가'} · {company.name}
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
@@ -57,7 +71,9 @@ function ReportModal({ company, onClose, onSave }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
-            <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? '저장 중...' : '저장'}</button>
+            <button className="btn btn-primary" onClick={submit} disabled={loading}>
+              {loading ? '저장 중...' : isEdit ? '수정 저장' : '저장'}
+            </button>
           </div>
         </div>
       </div>

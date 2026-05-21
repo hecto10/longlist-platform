@@ -1,9 +1,17 @@
-// ─── FINANCIAL UPDATE MODAL ───────────────────────────────
-function FinancialModal({ company, onClose, onSave }) {
+// ─── FINANCIAL MODAL (신규 + 수정 공용) ──────────────────
+function FinancialModal({ company, record, onClose, onSave }) {
   const { useState } = React;
+  const isEdit = !!record;
+
   const [form, setForm] = useState({
-    quarter: '', fiscal_date: '', revenue: '', operating_profit: '',
-    total_assets: '', net_assets: '', source: '', memo: ''
+    quarter:          isEdit ? (record.quarter          ?? '') : '',
+    fiscal_date:      isEdit ? (record.fiscal_date      ?? '') : '',
+    revenue:          isEdit ? (record.revenue          ?? '') : '',
+    operating_profit: isEdit ? (record.operating_profit ?? '') : '',
+    total_assets:     isEdit ? (record.total_assets     ?? '') : '',
+    net_assets:       isEdit ? (record.net_assets       ?? '') : '',
+    source:           isEdit ? (record.source           ?? '') : '',
+    memo:             isEdit ? (record.memo             ?? '') : '',
   });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
@@ -12,17 +20,21 @@ function FinancialModal({ company, onClose, onSave }) {
     if (!form.fiscal_date || !form.quarter) return alert('분기와 결산기준일을 입력해주세요');
     setLoading(true);
     try {
-      await companyService.insertFinancial({
-        company_id: company.id,
-        quarter: form.quarter,
-        fiscal_date: form.fiscal_date,
-        revenue: form.revenue || null,
-        operating_profit: form.operating_profit || null,
-        total_assets: form.total_assets || null,
-        net_assets: form.net_assets || null,
-        source: form.source || null,
-        memo: form.memo || null,
-      });
+      const payload = {
+        quarter:          form.quarter,
+        fiscal_date:      form.fiscal_date,
+        revenue:          form.revenue          !== '' ? form.revenue          : null,
+        operating_profit: form.operating_profit !== '' ? form.operating_profit : null,
+        total_assets:     form.total_assets     !== '' ? form.total_assets     : null,
+        net_assets:       form.net_assets       !== '' ? form.net_assets       : null,
+        source:           form.source           || null,
+        memo:             form.memo             || null,
+      };
+      if (isEdit) {
+        await companyService.updateFinancial(record.id, payload);
+      } else {
+        await companyService.insertFinancial({ company_id: company.id, ...payload });
+      }
       onSave(); onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
@@ -35,7 +47,9 @@ function FinancialModal({ company, onClose, onSave }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">수치 업데이트 · {company.name}</div>
+          <div className="modal-title">
+            {isEdit ? '재무실적 수정' : '수치 업데이트'} · {company.name}
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
@@ -79,7 +93,9 @@ function FinancialModal({ company, onClose, onSave }) {
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
-            <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? '저장 중...' : '저장'}</button>
+            <button className="btn btn-primary" onClick={submit} disabled={loading}>
+              {loading ? '저장 중...' : isEdit ? '수정 저장' : '저장'}
+            </button>
           </div>
         </div>
       </div>
