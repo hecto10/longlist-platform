@@ -92,6 +92,33 @@ const companyService = {
     return data || [];
   },
 
+  // 재무실적 수정
+  async updateFinancial(id, payload) {
+    const { error } = await supabase
+      .from('financials')
+      .update(payload)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  // 기업가치 수정
+  async updateValuation(id, payload) {
+    const { error } = await supabase
+      .from('valuations')
+      .update(payload)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  // 보고 이력 수정
+  async updateReport(id, payload) {
+    const { error } = await supabase
+      .from('reports')
+      .update(payload)
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   // 재무실적 추가
   async insertFinancial(payload) {
     const { error } = await supabase
@@ -116,59 +143,11 @@ const companyService = {
     if (error) throw error;
   },
 
-// 엑셀 업로드용 upsert
+  // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
       .from('companies')
       .upsert(payload, { onConflict: 'name' });
     if (error) throw error;
   },
-
-  // ── 수정 이력 저장 ────────────────────────────────────────
-  async logChanges(companyId, changes, changedBy = 'unknown') {
-    if (!changes || changes.length === 0) return;
-    const rows = changes.map(c => ({
-      company_id: companyId,
-      changed_by: changedBy || 'unknown',
-      field_name: c.field_name,
-      old_value:  c.old_value  != null ? String(c.old_value)  : null,
-      new_value:  c.new_value  != null ? String(c.new_value)  : null,
-    }));
-    const { error } = await supabase
-      .from('company_change_logs')
-      .insert(rows);
-    if (error) console.warn('[companyService.logChanges] 이력 저장 실패:', error.message);
-  },
-
-  // ── 관리자 전용 조회 함수 (현재 UI에서는 호출하지 않음) ──────
-
-  // async fetchChangeLogsByCompany(companyId) {
-  //   const { data, error } = await supabase
-  //     .from('company_change_logs')
-  //     .select('*')
-  //     .eq('company_id', companyId)
-  //     .order('changed_at', { ascending: false });
-  //   if (error) throw error;
-  //   return data || [];
-  // },
-
-  // async fetchRecentChangeLogs(limit = 50) {
-  //   const { data, error } = await supabase
-  //     .from('company_change_logs')
-  //     .select('*, companies(name)')
-  //     .order('changed_at', { ascending: false })
-  //     .limit(limit);
-  //   if (error) throw error;
-  //   return data || [];
-  // },
-
-  // async fetchChangeLogsByUser(changedBy) {
-  //   const { data, error } = await supabase
-  //     .from('company_change_logs')
-  //     .select('*, companies(name)')
-  //     .eq('changed_by', changedBy)
-  //     .order('changed_at', { ascending: false });
-  //   if (error) throw error;
-  //   return data || [];
-  // },
 };
