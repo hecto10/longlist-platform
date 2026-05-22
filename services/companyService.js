@@ -229,6 +229,21 @@ const companyService = {
     }
   },
 
+  // 기업 정보 변경 이력 저장
+  async logChanges(companyId, changes, changedBy) {
+    const rows = changes.map(({ field_name, old_value, new_value }) => ({
+      company_id: String(companyId),
+      field_name,
+      old_value:  old_value ?? null,
+      new_value:  new_value ?? null,
+      changed_by: changedBy || 'unknown',
+    }));
+    const { error } = await supabase
+      .from('company_change_logs')
+      .insert(rows);
+    if (error) throw error;
+  },
+
   // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
