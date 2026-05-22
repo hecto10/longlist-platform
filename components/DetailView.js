@@ -228,6 +228,8 @@ function DetailView({ company, onBack }) {
                               <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
                               <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
                             </td>
+                            <td style={{fontSize:12}}>
+                              {fmt(f.revenue)}
                               {revChg && <span style={{fontSize:9,color:Number(revChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(revChg)>=0?'▲':'▼'}{Math.abs(revChg)}%</span>}
                             </td>
                             <td style={{fontSize:12}}>
