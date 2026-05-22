@@ -72,6 +72,24 @@ function DetailView({ company, onBack }) {
           onSave={()=>{ load(); showToast(modal.record ? '보고 이력이 수정됐어요' : '보고 이력이 저장됐어요'); }}
         />
       )}
+      {modal?.type === 'delete' && (
+        <DeleteConfirmModal
+          company={company}
+          record={modal.record}
+          tableType={modal.tableType}
+          onClose={closeModal}
+          onDelete={async (reason) => {
+            const svc = {
+              financials: () => companyService.deleteFinancial(modal.record, reason),
+              valuations: () => companyService.deleteValuation(modal.record, reason),
+              reports:    () => companyService.deleteReport(modal.record, reason),
+            }[modal.tableType];
+            await svc();
+            load();
+            showToast('삭제됐어요');
+          }}
+        />
+      )}
 
       <button className="back-btn" onClick={onBack}>← 목록으로</button>
 
@@ -208,9 +226,8 @@ function DetailView({ company, onBack }) {
                             <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                               {fmtDate(f.fiscal_date)}
                               <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                              <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
                             </td>
-                            <td style={{fontSize:12}}>
-                              {fmt(f.revenue)}
                               {revChg && <span style={{fontSize:9,color:Number(revChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(revChg)>=0?'▲':'▼'}{Math.abs(revChg)}%</span>}
                             </td>
                             <td style={{fontSize:12}}>
@@ -263,6 +280,7 @@ function DetailView({ company, onBack }) {
                           <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                             {fmtDate(f.fiscal_date)}
                             <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                            <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
                           </td>
                           <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
                           <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
@@ -398,6 +416,7 @@ function DetailView({ company, onBack }) {
                         <div style={{...cs,textAlign:'left',position:'relative'}}>
                           {fmtDate(v.valuation_date)}
                           <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>
+                          <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>
                         </div>
                         <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
@@ -443,6 +462,7 @@ function DetailView({ company, onBack }) {
                       <td style={{textAlign:'left'}}>
                         {fmtDate(r.report_date)}
                         <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>✎</button>
+                        <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:r,tableType:'reports'});}}>🗑</button>
                       </td>
                       <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
