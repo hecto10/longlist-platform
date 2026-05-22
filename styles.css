@@ -100,6 +100,11 @@ body { font-family: 'MaruBuri', sans-serif; background: var(--bg); color: var(--
 .history-table td:first-child { text-align: left; color: var(--text); font-family: inherit; font-weight: 500; }
 .history-table tr:last-child td { border-bottom: none; }
 .history-table tr:hover td { background: #fff5f0; }
+.history-table .row-edit-btn { opacity: 0; transition: opacity 0.15s; }
+.history-table tr:hover .row-edit-btn { opacity: 1; }
+.valuation-row .row-edit-btn { opacity: 0; transition: opacity 0.15s; }
+.valuation-row:hover .row-edit-btn { opacity: 1; }
+.valuation-row:hover > div { background: #fff5f0; }
 .full-width-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
 .report-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .report-row:last-child { border-bottom: none; }
