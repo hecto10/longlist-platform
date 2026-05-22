@@ -143,15 +143,14 @@ const companyService = {
     if (error) throw error;
   },
 
-  // 삭제 로그 저장 (pending 상태로 먼저 insert, log id 반환)
+  // 삭제 로그 저장 (pending 상태로 먼저 insert, log id 클라이언트 생성)
   async insertDeletionLog({ table_name, record_id, company_id, reason, snapshot }) {
-    const { data, error } = await supabase
+    const logId = crypto.randomUUID();
+    const { error } = await supabase
       .from('deletion_logs')
-      .insert({ table_name, record_id, company_id, reason, snapshot, status: 'pending' })
-      .select('id')
-      .single();
+      .insert({ id: logId, table_name, record_id, company_id, reason, snapshot, status: 'pending' });
     if (error) throw error;
-    return data.id;
+    return logId;
   },
 
   // 삭제 로그 상태 업데이트
