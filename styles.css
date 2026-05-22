@@ -102,6 +102,8 @@ body { font-family: 'MaruBuri', sans-serif; background: var(--bg); color: var(--
 .history-table tr:hover td { background: #fff5f0; }
 .row-edit-btn { opacity: 1; background: none; border: none; color: var(--text3); font-size: 12px; cursor: pointer; padding: 2px 4px; border-radius: 4px; line-height: 1; vertical-align: middle; }
 .row-edit-btn:hover { color: var(--accent); background: rgba(255,106,0,0.08); }
+.row-delete-btn { opacity: 1; background: none; border: none; color: var(--text3); font-size: 11px; cursor: pointer; padding: 2px 4px; border-radius: 4px; line-height: 1; vertical-align: middle; }
+.row-delete-btn:hover { color: var(--red); background: rgba(220,38,38,0.08); }
 .valuation-row:hover > div { background: #fff5f0; }
 .full-width-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
 .report-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
