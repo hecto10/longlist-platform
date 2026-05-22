@@ -197,7 +197,6 @@ function DetailView({ company, onBack }) {
                         <th style={{fontSize:10}}>매출</th>
                         <th style={{fontSize:10}}>영업이익</th>
                         <th style={{fontSize:10}}>영업이익률</th>
-                        <th style={{fontSize:10}}></th>
                       </tr></thead>
                       <tbody>{financials.map((f,i) => {
                         const prev = financials[i+1];
@@ -206,7 +205,10 @@ function DetailView({ company, onBack }) {
                         const opMargin = f.revenue && f.revenue !== 0 ? ((Number(f.operating_profit)||0) / Number(f.revenue) * 100).toFixed(1) : null;
                         return (
                           <tr key={f.id}>
-                            <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>{fmtDate(f.fiscal_date)}</td>
+                            <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
+                              {fmtDate(f.fiscal_date)}
+                              <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>수정</button>
+                            </td>
                             <td style={{fontSize:12}}>
                               {fmt(f.revenue)}
                               {revChg && <span style={{fontSize:9,color:Number(revChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(revChg)>=0?'▲':'▼'}{Math.abs(revChg)}%</span>}
@@ -217,9 +219,6 @@ function DetailView({ company, onBack }) {
                             </td>
                             <td style={{fontSize:12,color:opMargin===null?'var(--text3)':Number(opMargin)<0?'var(--red)':'var(--text)',fontFamily:'MaruBuri,sans-serif'}}>
                               {opMargin !== null ? opMargin + '%' : '—'}
-                            </td>
-                            <td style={{textAlign:'right'}}>
-                              <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('financial',f)}>수정</button>
                             </td>
                           </tr>
                         );
@@ -258,17 +257,16 @@ function DetailView({ company, onBack }) {
                         <th style={{fontSize:10}}>총자산</th>
                         <th style={{fontSize:10}}>순자산</th>
                         <th style={{fontSize:10}}>출처</th>
-                        <th style={{fontSize:10}}></th>
                       </tr></thead>
                       <tbody>{financials.map(f => (
                         <tr key={f.id}>
-                          <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>{fmtDate(f.fiscal_date)}</td>
+                          <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
+                            {fmtDate(f.fiscal_date)}
+                            <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>수정</button>
+                          </td>
                           <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
                           <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
                           <td style={{fontFamily:'inherit',fontSize:11,color:'var(--text3)'}}>{f.source||'—'}</td>
-                          <td style={{textAlign:'right'}}>
-                            <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('financial',f)}>수정</button>
-                          </td>
                         </tr>
                       ))}</tbody>
                     </table>
@@ -373,8 +371,8 @@ function DetailView({ company, onBack }) {
                   </svg>
                 </div>
                 <div style={{marginTop:20,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden'}}>
-                  <div style={{display:'grid',gridTemplateColumns:'120px 100px 80px 160px 1fr 60px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
-                    {['기준일','기업가치','P/E','거래 유형','출처',''].map((h,i)=>(
+                  <div style={{display:'grid',gridTemplateColumns:'150px 100px 80px 160px 1fr',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
+                    {['기준일','기업가치','P/E','거래 유형','출처'].map((h,i)=>(
                       <div key={i} style={{padding:'9px 14px',fontSize:11,fontWeight:600,color:'var(--text3)',letterSpacing:'0.06em',textAlign:'center'}}>{h}</div>
                     ))}
                   </div>
@@ -396,8 +394,11 @@ function DetailView({ company, onBack }) {
                       ? (Number(v.valuation) / Number(nearestF.operating_profit)).toFixed(1)
                       : null;
                     return (
-                      <div key={v.id} style={{display:'grid',gridTemplateColumns:'120px 100px 80px 160px 1fr 60px',borderBottom:idx<sorted.length-1?'1px solid var(--border)':'none',background:'var(--bg2)'}}>
-                        <div style={cs}>{fmtDate(v.valuation_date)}</div>
+                      <div key={v.id} className="valuation-row" style={{display:'grid',gridTemplateColumns:'150px 100px 80px 160px 1fr',borderBottom:idx<sorted.length-1?'1px solid var(--border)':'none',background:'var(--bg2)'}}>
+                        <div style={{...cs,textAlign:'left',position:'relative'}}>
+                          {fmtDate(v.valuation_date)}
+                          <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('valuation',v)}>수정</button>
+                        </div>
                         <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
                         <div style={cs}>{dealType}</div>
@@ -407,9 +408,6 @@ function DetailView({ company, onBack }) {
                             : textSource
                               ? <span style={{color:'var(--text2)'}}>{textSource}</span>
                               : <span style={{color:'var(--text3)'}}>—</span>}
-                        </div>
-                        <div style={{...cs}}>
-                          <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('valuation',v)}>수정</button>
                         </div>
                       </div>
                     );
@@ -439,18 +437,17 @@ function DetailView({ company, onBack }) {
                     <th style={{textAlign:'left'}}>보고 대상</th>
                     <th style={{textAlign:'left'}}>PPT</th>
                     <th style={{textAlign:'left'}}>비고</th>
-                    <th></th>
                   </tr></thead>
                   <tbody>{reports.map(r=>(
                     <tr key={r.id}>
-                      <td style={{textAlign:'left'}}>{fmtDate(r.report_date)}</td>
+                      <td style={{textAlign:'left'}}>
+                        {fmtDate(r.report_date)}
+                        <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>수정</button>
+                      </td>
                       <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
                       <td style={{textAlign:'left'}}>{r.ppt_link ? <a className="report-link" href={r.ppt_link} target="_blank" rel="noreferrer">PPT 보기 →</a> : <span style={{color:'var(--text3)'}}>—</span>}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',fontSize:12,color:'var(--text3)'}}>{r.notes || '—'}</td>
-                      <td style={{textAlign:'right'}}>
-                        <button style={{fontSize:10,padding:'2px 7px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('report',r)}>수정</button>
-                      </td>
                     </tr>
                   ))}</tbody>
                 </table>
