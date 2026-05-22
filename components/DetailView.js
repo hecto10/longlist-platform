@@ -1,6 +1,7 @@
 // ─── DETAIL VIEW ─────────────────────────────────────────
-function DetailView({ company, onBack }) {
+function DetailView({ company: initialCompany, onBack }) {
   const { useState, useEffect, useCallback } = React;
+  const [company, setCompany] = useState(initialCompany);
   const [financials, setFinancials] = useState([]);
   const [valuations, setValuations] = useState([]);
   const [reports, setReports] = useState([]);
@@ -13,15 +14,18 @@ function DetailView({ company, onBack }) {
   const [allTagsForEdit, setAllTagsForEdit] = useState([]);
 
   const load = useCallback(async () => {
-    const [f, v, r] = await Promise.all([
-      companyService.fetchFinancialsByCompany(company.id),
-      companyService.fetchValuationsByCompany(company.id),
-      companyService.fetchReportsByCompany(company.id),
+    const [f, v, r, companies] = await Promise.all([
+      companyService.fetchFinancialsByCompany(initialCompany.id),
+      companyService.fetchValuationsByCompany(initialCompany.id),
+      companyService.fetchReportsByCompany(initialCompany.id),
+      companyService.fetchAll(),
     ]);
     setFinancials(f);
     setValuations(v);
     setReports(r);
-  }, [company.id]);
+    const updated = companies.find(c => c.id === initialCompany.id);
+    if (updated) setCompany(updated);
+  }, [initialCompany.id]);
 
   useEffect(() => { load(); }, [load]);
 
