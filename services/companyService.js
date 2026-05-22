@@ -143,6 +143,62 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 삭제 로그 저장
+  async insertDeletionLog({ table_name, record_id, company_id, reason, snapshot }) {
+    const { error } = await supabase
+      .from('deletion_logs')
+      .insert({ table_name, record_id, company_id, reason, snapshot });
+    if (error) throw error;
+  },
+
+  // 재무실적 삭제 (로그 저장 후 hard delete)
+  async deleteFinancial(record, reason) {
+    await this.insertDeletionLog({
+      table_name: 'financials',
+      record_id: record.id,
+      company_id: record.company_id,
+      reason,
+      snapshot: record,
+    });
+    const { error } = await supabase
+      .from('financials')
+      .delete()
+      .eq('id', record.id);
+    if (error) throw error;
+  },
+
+  // 기업가치 삭제 (로그 저장 후 hard delete)
+  async deleteValuation(record, reason) {
+    await this.insertDeletionLog({
+      table_name: 'valuations',
+      record_id: record.id,
+      company_id: record.company_id,
+      reason,
+      snapshot: record,
+    });
+    const { error } = await supabase
+      .from('valuations')
+      .delete()
+      .eq('id', record.id);
+    if (error) throw error;
+  },
+
+  // 보고 이력 삭제 (로그 저장 후 hard delete)
+  async deleteReport(record, reason) {
+    await this.insertDeletionLog({
+      table_name: 'reports',
+      record_id: record.id,
+      company_id: record.company_id,
+      reason,
+      snapshot: record,
+    });
+    const { error } = await supabase
+      .from('reports')
+      .delete()
+      .eq('id', record.id);
+    if (error) throw error;
+  },
+
   // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
