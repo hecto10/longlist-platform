@@ -13,11 +13,23 @@ function FinancialModal({ company, record, onClose, onSave }) {
     source:           isEdit ? (record.source           ?? '') : '',
     memo:             isEdit ? (record.memo             ?? '') : '',
   });
-  const [loading, setLoading] = useState(false);
+
+  const getStoredUser = () =>
+    (typeof localStorage !== 'undefined' && localStorage.getItem('userName')) || '';
+
+  const [changedBy, setChangedBy] = useState(isEdit ? getStoredUser() : '');
+  const [reason,    setReason]    = useState('');
+  const [loading,   setLoading]   = useState(false);
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
+
+  function handleChangedByBlur(v) {
+    if (v && typeof localStorage !== 'undefined') localStorage.setItem('userName', v);
+  }
 
   async function submit() {
     if (!form.fiscal_date || !form.quarter) return alert('분기와 결산기준일을 입력해주세요');
+    if (isEdit && !changedBy.trim()) return alert('수정자를 입력해주세요');
+    if (isEdit && !reason.trim())    return alert('수정 사유를 입력해주세요');
     setLoading(true);
     try {
       const payload = {
@@ -32,6 +44,15 @@ function FinancialModal({ company, record, onClose, onSave }) {
       };
       if (isEdit) {
         await companyService.updateFinancial(record.id, payload);
+        await companyService.logDataChange({
+          target_table: 'financials',
+          target_id:    record.id,
+          company_id:   company.id,
+          old_snapshot: record,
+          new_snapshot: { ...record, ...payload },
+          changed_by:   changedBy.trim(),
+          reason:       reason.trim(),
+        });
       } else {
         await companyService.insertFinancial({ company_id: company.id, ...payload });
       }
@@ -91,6 +112,25 @@ function FinancialModal({ company, record, onClose, onSave }) {
             <label className="form-label">메모 (변화 이유)</label>
             <textarea className="form-textarea" placeholder="주요 변화 내용, 특이사항 등" value={form.memo} onChange={e=>set('memo',e.target.value)}/>
           </div>
+
+          {isEdit && (
+            <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
+              <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>수정 이력</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">수정자 <span style={{color:'var(--red)'}}>*</span></label>
+                  <input className="form-input" placeholder="이름 입력" value={changedBy}
+                    onChange={e=>setChangedBy(e.target.value)}
+                    onBlur={e=>handleChangedByBlur(e.target.value)}/>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">수정 사유 <span style={{color:'var(--red)'}}>*</span></label>
+                  <input className="form-input" placeholder="수정 사유 입력" value={reason} onChange={e=>setReason(e.target.value)}/>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
             <button className="btn btn-primary" onClick={submit} disabled={loading}>
