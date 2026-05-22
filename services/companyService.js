@@ -143,60 +143,90 @@ const companyService = {
     if (error) throw error;
   },
 
-  // 삭제 로그 저장
+  // 삭제 로그 저장 (pending 상태로 먼저 insert, log id 반환)
   async insertDeletionLog({ table_name, record_id, company_id, reason, snapshot }) {
+    const { data, error } = await supabase
+      .from('deletion_logs')
+      .insert({ table_name, record_id, company_id, reason, snapshot, status: 'pending' })
+      .select('id')
+      .single();
+    if (error) throw error;
+    return data.id;
+  },
+
+  // 삭제 로그 상태 업데이트
+  async updateDeletionLog(logId, status, error_message = null) {
     const { error } = await supabase
       .from('deletion_logs')
-      .insert({ table_name, record_id, company_id, reason, snapshot });
+      .update({ status, error_message })
+      .eq('id', logId);
     if (error) throw error;
   },
 
-  // 재무실적 삭제 (로그 저장 후 hard delete)
+  // 재무실적 삭제 (로그 pending → delete → success/fail)
   async deleteFinancial(record, reason) {
-    await this.insertDeletionLog({
+    const logId = await this.insertDeletionLog({
       table_name: 'financials',
-      record_id: record.id,
-      company_id: record.company_id,
+      record_id: String(record.id),
+      company_id: String(record.company_id),
       reason,
       snapshot: record,
     });
-    const { error } = await supabase
-      .from('financials')
-      .delete()
-      .eq('id', record.id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('financials')
+        .delete()
+        .eq('id', record.id);
+      if (error) throw error;
+      await this.updateDeletionLog(logId, 'success');
+    } catch(e) {
+      await this.updateDeletionLog(logId, 'fail', e.message);
+      throw e;
+    }
   },
 
-  // 기업가치 삭제 (로그 저장 후 hard delete)
+  // 기업가치 삭제 (로그 pending → delete → success/fail)
   async deleteValuation(record, reason) {
-    await this.insertDeletionLog({
+    const logId = await this.insertDeletionLog({
       table_name: 'valuations',
-      record_id: record.id,
-      company_id: record.company_id,
+      record_id: String(record.id),
+      company_id: String(record.company_id),
       reason,
       snapshot: record,
     });
-    const { error } = await supabase
-      .from('valuations')
-      .delete()
-      .eq('id', record.id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('valuations')
+        .delete()
+        .eq('id', record.id);
+      if (error) throw error;
+      await this.updateDeletionLog(logId, 'success');
+    } catch(e) {
+      await this.updateDeletionLog(logId, 'fail', e.message);
+      throw e;
+    }
   },
 
-  // 보고 이력 삭제 (로그 저장 후 hard delete)
+  // 보고 이력 삭제 (로그 pending → delete → success/fail)
   async deleteReport(record, reason) {
-    await this.insertDeletionLog({
+    const logId = await this.insertDeletionLog({
       table_name: 'reports',
-      record_id: record.id,
-      company_id: record.company_id,
+      record_id: String(record.id),
+      company_id: String(record.company_id),
       reason,
       snapshot: record,
     });
-    const { error } = await supabase
-      .from('reports')
-      .delete()
-      .eq('id', record.id);
-    if (error) throw error;
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', record.id);
+      if (error) throw error;
+      await this.updateDeletionLog(logId, 'success');
+    } catch(e) {
+      await this.updateDeletionLog(logId, 'fail', e.message);
+      throw e;
+    }
   },
 
   // 엑셀 업로드용 upsert
