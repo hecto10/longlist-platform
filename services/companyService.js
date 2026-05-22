@@ -243,6 +243,23 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 재무/기업가치/보고이력 수정 이력 저장
+  async logDataChange({ target_table, target_id, company_id, old_snapshot, new_snapshot, changed_by, reason }) {
+    const { error } = await supabase
+      .from('data_change_logs')
+      .insert({
+        target_table,
+        target_id:    String(target_id),
+        company_id:   String(company_id),
+        action_type:  'UPDATE',
+        old_snapshot,
+        new_snapshot,
+        changed_by,
+        reason,
+      });
+    if (error) throw error;
+  },
+
   // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
