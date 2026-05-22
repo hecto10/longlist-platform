@@ -207,7 +207,7 @@ function DetailView({ company, onBack }) {
                           <tr key={f.id}>
                             <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                               {fmtDate(f.fiscal_date)}
-                              <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                              <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
                             </td>
                             <td style={{fontSize:12}}>
                               {fmt(f.revenue)}
@@ -262,7 +262,7 @@ function DetailView({ company, onBack }) {
                         <tr key={f.id}>
                           <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                             {fmtDate(f.fiscal_date)}
-                            <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                            <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
                           </td>
                           <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
                           <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
@@ -397,7 +397,7 @@ function DetailView({ company, onBack }) {
                       <div key={v.id} className="valuation-row" style={{display:'grid',gridTemplateColumns:'150px 100px 80px 160px 1fr',borderBottom:idx<sorted.length-1?'1px solid var(--border)':'none',background:'var(--bg2)'}}>
                         <div style={{...cs,textAlign:'left',position:'relative'}}>
                           {fmtDate(v.valuation_date)}
-                          <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={()=>openModal('valuation',v)}>✎</button>
+                          <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>
                         </div>
                         <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
@@ -442,7 +442,7 @@ function DetailView({ company, onBack }) {
                     <tr key={r.id}>
                       <td style={{textAlign:'left'}}>
                         {fmtDate(r.report_date)}
-                        <button className="row-edit-btn" style={{marginLeft:6,fontSize:10,padding:'1px 6px',borderRadius:4,border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',cursor:'pointer'}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>✎</button>
+                        <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>✎</button>
                       </td>
                       <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
