@@ -1,5 +1,5 @@
 // ─── LIST VIEW ────────────────────────────────────────────
-function ListView({ onSelect }) {
+function ListView({ onSelect, isAdmin = false }) {
   const { useState, useEffect, useCallback } = React;
   const [companies, setCompanies] = useState([]);
   const [financials, setFinancials] = useState({});
@@ -94,8 +94,8 @@ function ListView({ onSelect }) {
           <option value="valuation">기업가치 높은순</option>
           <option value="updated">최근 업데이트순</option>
         </select>
-        <button className="btn btn-primary" onClick={()=>setShowAddCompany(true)}>+ 기업 추가</button>
-        <button className="btn btn-success" onClick={()=>setShowUpload(true)}>📊 엑셀 업로드</button>
+        {isAdmin && <button className="btn btn-primary" onClick={()=>setShowAddCompany(true)}>+ 기업 추가</button>}
+        {isAdmin && <button className="btn btn-success" onClick={()=>setShowUpload(true)}>📊 엑셀 업로드</button>}
       </div>
 
       {loading ? (

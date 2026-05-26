@@ -113,7 +113,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
           </div>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button className="btn-edit" onClick={()=>openModal('edit')}>✎ 기업 수정</button>
+          {isAdmin && <button className="btn-edit" onClick={()=>openModal('edit')}>✎ 기업 수정</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('financial')}>+ 재무실적</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('valuation')}>+ 기업가치</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('report')}>+ 보고 이력</button>}
@@ -229,7 +229,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
                           <tr key={f.id}>
                             <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                               {fmtDate(f.fiscal_date)}
-                              <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                              {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>}
                               {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                             </td>
                             <td style={{fontSize:12}}>
@@ -285,7 +285,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
                         <tr key={f.id}>
                           <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                             {fmtDate(f.fiscal_date)}
-                            <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                            {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>}
                             {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                           </td>
                           <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
@@ -421,7 +421,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
                       <div key={v.id} className="valuation-row" style={{display:'grid',gridTemplateColumns:'150px 100px 80px 160px 1fr',borderBottom:idx<sorted.length-1?'1px solid var(--border)':'none',background:'var(--bg2)'}}>
                         <div style={{...cs,textAlign:'left',position:'relative'}}>
                           {fmtDate(v.valuation_date)}
-                          <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>
+                          {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>}
                           {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>}
                         </div>
                         <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
@@ -467,7 +467,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
                     <tr key={r.id}>
                       <td style={{textAlign:'left'}}>
                         {fmtDate(r.report_date)}
-                        <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>✎</button>
+                        {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>✎</button>}
                         {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:r,tableType:'reports'});}}>🗑</button>}
                       </td>
                       <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
