@@ -1,5 +1,5 @@
 // ─── DETAIL VIEW ─────────────────────────────────────────
-function DetailView({ company: initialCompany, onBack }) {
+function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
   const { useState, useEffect, useCallback } = React;
   const [company, setCompany] = useState(initialCompany);
   const [financials, setFinancials] = useState([]);
@@ -114,9 +114,9 @@ function DetailView({ company: initialCompany, onBack }) {
         </div>
         <div style={{display:'flex',gap:8}}>
           <button className="btn-edit" onClick={()=>openModal('edit')}>✎ 기업 수정</button>
-          <button className="btn btn-secondary" onClick={()=>openModal('financial')}>+ 재무실적</button>
-          <button className="btn btn-secondary" onClick={()=>openModal('valuation')}>+ 기업가치</button>
-          <button className="btn btn-secondary" onClick={()=>openModal('report')}>+ 보고 이력</button>
+          {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('financial')}>+ 재무실적</button>}
+          {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('valuation')}>+ 기업가치</button>}
+          {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('report')}>+ 보고 이력</button>}
         </div>
       </div>
 
@@ -230,7 +230,7 @@ function DetailView({ company: initialCompany, onBack }) {
                             <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                               {fmtDate(f.fiscal_date)}
                               <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
-                              <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
+                              {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                             </td>
                             <td style={{fontSize:12}}>
                               {fmt(f.revenue)}
@@ -286,7 +286,7 @@ function DetailView({ company: initialCompany, onBack }) {
                           <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
                             {fmtDate(f.fiscal_date)}
                             <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
-                            <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
+                            {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                           </td>
                           <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
                           <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
@@ -422,7 +422,7 @@ function DetailView({ company: initialCompany, onBack }) {
                         <div style={{...cs,textAlign:'left',position:'relative'}}>
                           {fmtDate(v.valuation_date)}
                           <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>
-                          <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>
+                          {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>}
                         </div>
                         <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
@@ -468,7 +468,7 @@ function DetailView({ company: initialCompany, onBack }) {
                       <td style={{textAlign:'left'}}>
                         {fmtDate(r.report_date)}
                         <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('report',r);}}>✎</button>
-                        <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:r,tableType:'reports'});}}>🗑</button>
+                        {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:r,tableType:'reports'});}}>🗑</button>}
                       </td>
                       <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
