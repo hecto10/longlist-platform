@@ -129,6 +129,12 @@ function UserManagementView({ onBack, currentUserId }) {
                       style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit' }}
                     >승인</button>
                   )}
+                  {p.status === 'pending' && (
+                    <button
+                      onClick={() => handleStatusChange(p.id, 'blocked')}
+                      style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: 'var(--red)', cursor: 'pointer', fontFamily: 'inherit' }}
+                    >차단</button>
+                  )}
                   {p.status === 'active' && (
                     <button
                       onClick={() => handleStatusChange(p.id, 'blocked')}
