@@ -50,7 +50,7 @@ function FinancialModal({ company, record, onClose, onSave, isAdmin, session }) 
           target_table: 'financials', target_id: record.id, company_id: company.id,
           action_type:  'UPDATE',
           old_snapshot: record, new_snapshot: { ...record, ...payload },
-          changed_by:   changedBy.trim(), reason: reason.trim(),
+          changed_by:   session?.user?.email || changedBy.trim(), reason: reason.trim(),
           request_id:   linkedRequestId || null,
         });
       } else {
