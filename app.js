@@ -4,7 +4,7 @@ function App() {
   const [selected,    setSelected]    = useState(null);
   const [session,     setSession]     = useState(undefined);
   const [profile,     setProfile]     = useState(null);
-  const [view,        setView]        = useState('list'); // 'list' | 'users'
+  const [view, setView] = useState('list'); // 'list' | 'users' | 'requests'
 
   useEffect(() => {
     authService.getSession().then(s => {
@@ -108,6 +108,10 @@ function App() {
                 onClick={() => { setView('list'); setSelected(null); }}
               >기업 목록</button>
               <button
+                className={`nav-btn ${view === 'requests' ? 'active' : ''}`}
+                onClick={() => { setView('requests'); setSelected(null); }}
+              >요청 관리</button>
+              <button
                 className={`nav-btn ${view === 'users' ? 'active' : ''}`}
                 onClick={() => { setView('users'); setSelected(null); }}
               >사용자 관리</button>
@@ -141,15 +145,18 @@ function App() {
             onBack={() => setView('list')}
             currentUserId={session.user.id}
           />
+        ) : view === 'requests' && isAdmin ? (
+          <RequestManagementView session={session} />
         ) : selected ? (
           <DetailView
             company={selected}
             onBack={() => setSelected(null)}
             isAdmin={isAdmin}
+            session={session}
             userProfile={profile}
           />
         ) : (
-          <ListView onSelect={setSelected} isAdmin={isAdmin} />
+          <ListView onSelect={setSelected} isAdmin={isAdmin} session={session} profile={profile} />
         )}
       </main>
     </div>
