@@ -51,7 +51,8 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
           target_table: 'valuations', target_id: newRow?.id ?? null, company_id: company.id,
           action_type:  'INSERT',
           old_snapshot: null, new_snapshot: newRow || { company_id: company.id, ...payload },
-          changed_by:   session?.user?.email || null, reason: null,
+          changed_by:   session?.user?.email || null,
+          reason:       linkedRequestId ? '요청 기반 신규 추가' : '일반 신규 추가',
           request_id:   linkedRequestId || null,
         });
       }
