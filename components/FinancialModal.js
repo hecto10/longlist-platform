@@ -4,14 +4,14 @@ function FinancialModal({ company, record, onClose, onSave, isAdmin, session }) 
   const isEdit = !!record;
 
   const [form, setForm] = useState({
-    quarter:          isEdit ? (record.quarter          ?? '') : '',
-    fiscal_date:      isEdit ? (record.fiscal_date      ?? '') : '',
-    revenue:          isEdit ? (record.revenue          ?? '') : '',
+    period_type:      isEdit ? (record.period_type     ?? '') : '',
+    fiscal_date:      isEdit ? (record.fiscal_date     ?? '') : '',
+    revenue:          isEdit ? (record.revenue         ?? '') : '',
     operating_profit: isEdit ? (record.operating_profit ?? '') : '',
-    total_assets:     isEdit ? (record.total_assets     ?? '') : '',
-    net_assets:       isEdit ? (record.net_assets       ?? '') : '',
-    source:           isEdit ? (record.source           ?? '') : '',
-    memo:             isEdit ? (record.memo             ?? '') : '',
+    total_assets:     isEdit ? (record.total_assets    ?? '') : '',
+    net_assets:       isEdit ? (record.net_assets      ?? '') : '',
+    source:           isEdit ? (record.source          ?? '') : '',
+    memo:             isEdit ? (record.memo            ?? '') : '',
   });
 
   const [reason,           setReason]           = useState('');
@@ -21,12 +21,12 @@ function FinancialModal({ company, record, onClose, onSave, isAdmin, session }) 
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
   async function submit() {
-    if (!form.fiscal_date || !form.quarter) return alert('분기와 결산기준일을 입력해주세요');
+    if (!form.fiscal_date || !form.period_type) return alert('기준기간과 결산기준일을 입력해주세요');
     if (isEdit && !reason.trim()) return alert('수정 사유를 입력해주세요');
     setLoading(true);
     try {
       const payload = {
-        quarter:          form.quarter,
+        period_type:      form.period_type,
         fiscal_date:      form.fiscal_date,
         revenue:          form.revenue          !== '' ? form.revenue          : null,
         operating_profit: form.operating_profit !== '' ? form.operating_profit : null,
@@ -79,11 +79,17 @@ function FinancialModal({ company, record, onClose, onSave, isAdmin, session }) 
         <div className="modal-body">
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">분기</label>
-              <input className="form-input" placeholder="예: 2025 Q1" value={form.quarter} onChange={e=>set('quarter',e.target.value)}/>
+              <label className="form-label">기준기간 <span style={{color:'var(--red)'}}>*</span></label>
+              <select className="form-input" value={form.period_type} onChange={e=>set('period_type',e.target.value)}>
+                <option value="">선택</option>
+                <option value="연간">연간</option>
+                <option value="1Q">1Q</option>
+                <option value="2Q">2Q</option>
+                <option value="3Q">3Q</option>
+              </select>
             </div>
             <div className="form-group">
-              <label className="form-label">결산기준일</label>
+              <label className="form-label">결산기준일 <span style={{color:'var(--red)'}}>*</span></label>
               <input type="date" className="form-input" value={form.fiscal_date} onChange={e=>set('fiscal_date',e.target.value)}/>
             </div>
           </div>
