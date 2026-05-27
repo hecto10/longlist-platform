@@ -305,18 +305,22 @@ const companyService = {
 
   // 재무/기업가치/보고이력 변경 이력 저장 (INSERT / UPDATE)
   async logDataChange({ target_table, target_id, company_id, action_type = 'UPDATE', old_snapshot, new_snapshot, changed_by, reason, request_id }) {
+    if (!target_id) {
+      console.warn('[logDataChange] target_id 없음 — 로그 저장 건너뜀', { target_table, action_type });
+      return;
+    }
     const { error } = await supabase
       .from('data_change_logs')
       .insert({
         target_table,
-        target_id:   target_id != null ? String(target_id) : null,
-        company_id:  String(company_id),
+        target_id:    String(target_id),
+        company_id:   String(company_id),
         action_type,
         old_snapshot: old_snapshot ?? null,
         new_snapshot,
-        changed_by:  changed_by   || null,
-        reason:      reason       || null,
-        request_id:  request_id   || null,
+        changed_by:   changed_by  || null,
+        reason:       reason      || '변경 이력 기록',
+        request_id:   request_id  || null,
       });
     if (error) throw error;
   },
