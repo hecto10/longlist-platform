@@ -1,5 +1,5 @@
 // ─── REPORT MODAL (신규 + 수정 공용) ─────────────────────
-function ReportModal({ company, record, onClose, onSave }) {
+function ReportModal({ company, record, onClose, onSave, session }) {
   const { useState } = React;
   const isEdit = !!record;
 
@@ -11,22 +11,13 @@ function ReportModal({ company, record, onClose, onSave }) {
     notes:         isEdit ? (record.notes         ?? '') : '',
   });
 
-  const getStoredUser = () =>
-    (typeof localStorage !== 'undefined' && localStorage.getItem('userName')) || '';
-
-  const [changedBy, setChangedBy] = useState(isEdit ? getStoredUser() : '');
-  const [reason,    setReason]    = useState('');
-  const [loading,   setLoading]   = useState(false);
+  const [reason,  setReason]  = useState('');
+  const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
-
-  function handleChangedByBlur(v) {
-    if (v && typeof localStorage !== 'undefined') localStorage.setItem('userName', v);
-  }
 
   async function submit() {
     if (!form.report_date) return alert('보고 날짜를 입력해주세요');
-    if (isEdit && !changedBy.trim()) return alert('수정자를 입력해주세요');
-    if (isEdit && !reason.trim())    return alert('수정 사유를 입력해주세요');
+    if (isEdit && !reason.trim()) return alert('수정 사유를 입력해주세요');
     setLoading(true);
     try {
       const payload = {
@@ -42,9 +33,10 @@ function ReportModal({ company, record, onClose, onSave }) {
           target_table: 'reports',
           target_id:    record.id,
           company_id:   company.id,
+          action_type:  'UPDATE',
           old_snapshot: record,
           new_snapshot: { ...record, ...payload },
-          changed_by:   changedBy.trim(),
+          changed_by:   session?.user?.email || null,
           reason:       reason.trim(),
         });
       } else {
@@ -94,17 +86,13 @@ function ReportModal({ company, record, onClose, onSave }) {
           {isEdit && (
             <div style={{borderTop:'1px solid var(--border)',paddingTop:16,marginTop:4}}>
               <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>수정 이력</div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">수정자 <span style={{color:'var(--red)'}}>*</span></label>
-                  <input className="form-input" placeholder="이름 입력" value={changedBy}
-                    onChange={e=>setChangedBy(e.target.value)}
-                    onBlur={e=>handleChangedByBlur(e.target.value)}/>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">수정 사유 <span style={{color:'var(--red)'}}>*</span></label>
-                  <input className="form-input" placeholder="수정 사유 입력" value={reason} onChange={e=>setReason(e.target.value)}/>
-                </div>
+              <div style={{fontSize:12,color:'var(--text3)',marginBottom:10}}>
+                수정자: <span style={{color:'var(--text2)'}}>{session?.user?.email || '—'}</span>
+                <span style={{marginLeft:8,fontSize:11,color:'var(--text3)'}}>· 자동 기록됩니다</span>
+              </div>
+              <div className="form-group">
+                <label className="form-label">수정 사유 <span style={{color:'var(--red)'}}>*</span></label>
+                <input className="form-input" placeholder="수정 사유 입력" value={reason} onChange={e=>setReason(e.target.value)}/>
               </div>
             </div>
           )}

@@ -77,6 +77,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           company={company}
           record={modal.record}
           onClose={closeModal}
+          session={session}
           onSave={()=>{ load(); showToast(modal.record ? '보고 이력이 수정됐어요' : '보고 이력이 저장됐어요'); }}
         />
       )}
