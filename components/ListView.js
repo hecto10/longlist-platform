@@ -1,5 +1,5 @@
 // ─── LIST VIEW ────────────────────────────────────────────
-function ListView({ onSelect, isAdmin = false }) {
+function ListView({ onSelect, isAdmin = false, session, profile }) {
   const { useState, useEffect, useCallback } = React;
   const [companies, setCompanies] = useState([]);
   const [financials, setFinancials] = useState({});
@@ -10,6 +10,7 @@ function ListView({ onSelect, isAdmin = false }) {
   const [sortBy, setSortBy] = useState('name');
   const [showUpload, setShowUpload] = useState(false);
   const [showAddCompany, setShowAddCompany] = useState(false);
+  const [showAddRequest, setShowAddRequest] = useState(false);
   const [toast, setToast] = useState(null);
 
   const load = useCallback(async () => {
@@ -80,6 +81,15 @@ function ListView({ onSelect, isAdmin = false }) {
         />
       )}
 
+      {showAddRequest && (
+        <AddCompanyRequestModal
+          session={session}
+          profile={profile}
+          onClose={() => setShowAddRequest(false)}
+          onSave={() => { setShowAddRequest(false); setToast({ msg: '요청이 제출됐어요', type: 'success' }); }}
+        />
+      )}
+
       <div className="toolbar">
         <div className="search-box">
           <input placeholder="기업명, 태그, 업종 검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
@@ -96,6 +106,7 @@ function ListView({ onSelect, isAdmin = false }) {
         </select>
         {isAdmin && <button className="btn btn-primary" onClick={()=>setShowAddCompany(true)}>+ 기업 추가</button>}
         {isAdmin && <button className="btn btn-success" onClick={()=>setShowUpload(true)}>📊 엑셀 업로드</button>}
+        {!isAdmin && <button className="btn btn-secondary" onClick={()=>setShowAddRequest(true)}>+ 기업 추가 요청</button>}
       </div>
 
       {loading ? (

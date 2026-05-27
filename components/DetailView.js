@@ -1,14 +1,14 @@
 // ─── DETAIL VIEW ─────────────────────────────────────────
-function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
+function DetailView({ company: initialCompany, onBack, isAdmin = false, session, userProfile }) {
   const { useState, useEffect, useCallback } = React;
   const [company, setCompany] = useState(initialCompany);
   const [financials, setFinancials] = useState([]);
   const [valuations, setValuations] = useState([]);
   const [reports, setReports] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
-  // modal: null | { type: 'edit'|'financial'|'valuation'|'report', record: object|null }
+  // modal: null | { type: 'edit'|'financial'|'valuation'|'report'|'updateRequest', record: object|null, requestType: string|null }
   const [modal, setModal] = useState(null);
-  const openModal = (type, record = null) => setModal({ type, record });
+  const openModal = (type, record = null, requestType = null) => setModal({ type, record, requestType });
   const closeModal = () => setModal(null);
   const [toast, setToast] = useState(null);
   const [allTagsForEdit, setAllTagsForEdit] = useState([]);
@@ -94,6 +94,16 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
           }}
         />
       )}
+      {modal?.type === 'updateRequest' && (
+        <UpdateRequestModal
+          session={session}
+          profile={userProfile}
+          company={company}
+          requestType={modal.requestType}
+          onClose={closeModal}
+          onSave={() => { closeModal(); showToast('요청이 제출됐어요'); }}
+        />
+      )}
 
       <button className="back-btn" onClick={onBack}>← 목록으로</button>
 
@@ -117,6 +127,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false }) {
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('financial')}>+ 재무실적</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('valuation')}>+ 기업가치</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('report')}>+ 보고 이력</button>}
+          {!isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('updateRequest', null, 'UPDATE_FINANCIALS')}>재무실적 업데이트 요청</button>}
+          {!isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('updateRequest', null, 'UPDATE_VALUATION')}>기업가치 업데이트 요청</button>}
         </div>
       </div>
 
