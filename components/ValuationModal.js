@@ -1,6 +1,6 @@
 // ─── VALUATION MODAL (신규 + 수정 공용) ──────────────────
 function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) {
-  const { useState, useRef } = React;
+  const { useState } = React;
   const isEdit = !!record;
 
   const [form, setForm] = useState({
@@ -13,10 +13,10 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
   const getStoredUser = () =>
     (typeof localStorage !== 'undefined' && localStorage.getItem('userName')) || '';
 
-  const [changedBy, setChangedBy] = useState(isEdit ? getStoredUser() : '');
-  const [reason,    setReason]    = useState('');
-  const [loading,   setLoading]   = useState(false);
-  const linkedRequestId = useRef('');
+  const [changedBy,        setChangedBy]        = useState(isEdit ? getStoredUser() : '');
+  const [reason,           setReason]           = useState('');
+  const [loading,          setLoading]          = useState(false);
+  const [linkedRequestId,  setLinkedRequestId]  = useState('');
 
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
@@ -43,22 +43,22 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
           action_type:  'UPDATE',
           old_snapshot: record, new_snapshot: { ...record, ...payload },
           changed_by:   changedBy.trim(), reason: reason.trim(),
-          request_id:   linkedRequestId.current || null,
+          request_id:   linkedRequestId || null,
         });
       } else {
-        await companyService.insertValuation({ company_id: company.id, ...payload });
+        const newRow = await companyService.insertValuation({ company_id: company.id, ...payload });
         await companyService.logDataChange({
-          target_table: 'valuations', target_id: null, company_id: company.id,
+          target_table: 'valuations', target_id: newRow?.id ?? null, company_id: company.id,
           action_type:  'INSERT',
-          old_snapshot: null, new_snapshot: { company_id: company.id, ...payload },
+          old_snapshot: null, new_snapshot: newRow || { company_id: company.id, ...payload },
           changed_by:   session?.user?.email || null, reason: null,
-          request_id:   linkedRequestId.current || null,
+          request_id:   linkedRequestId || null,
         });
       }
       // 요청 연결 처리
-      if (isAdmin && session && linkedRequestId.current) {
+      if (isAdmin && session && linkedRequestId) {
         await requestService.updateRequestStatus(
-          linkedRequestId.current, 'done', session.user.id, null, String(company.id)
+          linkedRequestId, 'done', session.user.id, null, String(company.id)
         );
       }
       onSave(); onClose();
@@ -118,7 +118,7 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
             <RequestLinkSection
               requestType="UPDATE_VALUATION"
               companyId={company.id}
-              onSelect={id => { linkedRequestId.current = id; }}
+              onSelect={id => setLinkedRequestId(id)}
             />
           )}
 
