@@ -4,7 +4,7 @@ function App() {
   const [selected,    setSelected]    = useState(null);
   const [session,     setSession]     = useState(undefined);
   const [profile,     setProfile]     = useState(null);
-  const [view, setView] = useState('list'); // 'list' | 'users' | 'requests'
+  const [view, setView] = useState('list'); // 'list' | 'users' | 'requests' | 'myRequests'
 
   useEffect(() => {
     authService.getSession().then(s => {
@@ -41,6 +41,26 @@ function App() {
 
   async function handleSignOut() {
     await authService.signOut();
+  }
+
+  // 요청 관리 → 해당 화면으로 이동
+  function handleNavigateFromRequest(request) {
+    if (request.request_type === 'ADD_COMPANY') {
+      setView('list');
+      setSelected(null);
+    } else {
+      // UPDATE_FINANCIALS / UPDATE_VALUATION → 해당 기업 DetailView로 이동
+      // company_id 기준으로 companies 목록에서 찾아서 selected에 세팅
+      companyService.fetchAll().then(companies => {
+        const company = companies.find(c => String(c.id) === String(request.company_id));
+        if (company) {
+          setSelected(company);
+          setView('list');
+        } else {
+          alert('해당 기업을 찾을 수 없습니다');
+        }
+      }).catch(() => alert('기업 조회 실패'));
+    }
   }
 
   // ── 로딩 중 ───────────────────────────────────────────
@@ -103,18 +123,20 @@ function App() {
           </div>
           {isAdmin && (
             <nav style={{ display: 'flex', gap: 2 }}>
-              <button
-                className={`nav-btn ${view === 'list' ? 'active' : ''}`}
-                onClick={() => { setView('list'); setSelected(null); }}
-              >기업 목록</button>
-              <button
-                className={`nav-btn ${view === 'requests' ? 'active' : ''}`}
-                onClick={() => { setView('requests'); setSelected(null); }}
-              >요청 관리</button>
-              <button
-                className={`nav-btn ${view === 'users' ? 'active' : ''}`}
-                onClick={() => { setView('users'); setSelected(null); }}
-              >사용자 관리</button>
+              <button className={`nav-btn ${view === 'list' ? 'active' : ''}`}
+                onClick={() => { setView('list'); setSelected(null); }}>기업 목록</button>
+              <button className={`nav-btn ${view === 'requests' ? 'active' : ''}`}
+                onClick={() => { setView('requests'); setSelected(null); }}>요청 관리</button>
+              <button className={`nav-btn ${view === 'users' ? 'active' : ''}`}
+                onClick={() => { setView('users'); setSelected(null); }}>사용자 관리</button>
+            </nav>
+          )}
+          {!isAdmin && (
+            <nav style={{ display: 'flex', gap: 2 }}>
+              <button className={`nav-btn ${view === 'list' || view === '' ? 'active' : ''}`}
+                onClick={() => { setView('list'); setSelected(null); }}>기업 목록</button>
+              <button className={`nav-btn ${view === 'myRequests' ? 'active' : ''}`}
+                onClick={() => { setView('myRequests'); setSelected(null); }}>내 요청</button>
             </nav>
           )}
         </div>
@@ -141,12 +163,11 @@ function App() {
 
       <main className="main">
         {view === 'users' && isAdmin ? (
-          <UserManagementView
-            onBack={() => setView('list')}
-            currentUserId={session.user.id}
-          />
+          <UserManagementView onBack={() => setView('list')} currentUserId={session.user.id} />
         ) : view === 'requests' && isAdmin ? (
-          <RequestManagementView session={session} />
+          <RequestManagementView session={session} onNavigate={handleNavigateFromRequest} />
+        ) : view === 'myRequests' && !isAdmin ? (
+          <MyRequestsView session={session} />
         ) : selected ? (
           <DetailView
             company={selected}
