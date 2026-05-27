@@ -1,10 +1,12 @@
 // ─── REQUEST MANAGEMENT VIEW (admin 전용) ────────────────
 function RequestManagementView({ session, onNavigate }) {
   const { useState, useEffect } = React;
-  const [requests, setRequests] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState('pending'); // 'pending' | 'done' | 'all'
-  const [toast,    setToast]    = useState(null);
+  const [requests,         setRequests]         = useState([]);
+  const [loading,          setLoading]          = useState(true);
+  const [filter,           setFilter]           = useState('pending');
+  const [toast,            setToast]            = useState(null);
+  // 기업 연결 UI: { requestId, searchQuery, results, selectedId }
+  const [linkUI, setLinkUI] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -20,19 +22,65 @@ function RequestManagementView({ session, onNavigate }) {
 
   useEffect(() => { load(); }, []);
 
-  async function handleDone(request) {
-    let resolvedCompanyId = null;
-
-    if (request.request_type === 'ADD_COMPANY') {
-      const confirmed = window.confirm('결과 기업이 연결되지 않습니다. 요청만 처리 완료하시겠습니까?');
+  // ADD_COMPANY 처리 완료 버튼 클릭
+  async function handleDoneAddCompany(request) {
+    const wantLink = window.confirm('결과 기업이 연결되지 않았습니다. 이미 등록된 기업과 연결하시겠습니까?');
+    if (wantLink) {
+      // payload 회사명/브랜드명으로 초기 검색어 세팅
+      const initQuery = request.payload?.company_name || request.payload?.brand_name || '';
+      const results = initQuery ? await searchCompanies(initQuery) : [];
+      setLinkUI({ requestId: request.id, searchQuery: initQuery, results, selectedId: '' });
+    } else {
+      const confirmed = window.confirm('결과 연결 없이 처리 완료하시겠습니까?');
       if (!confirmed) return;
-    } else if (request.company_id) {
-      resolvedCompanyId = request.company_id;
+      await completeDone(request.id, null);
     }
+  }
 
+  // UPDATE_* 처리 완료 버튼 클릭
+  async function handleDoneUpdate(request) {
+    const resolvedCompanyId = request.company_id || null;
+    await completeDone(request.id, resolvedCompanyId);
+  }
+
+  // 기업 검색
+  async function searchCompanies(query) {
     try {
-      await requestService.updateRequestStatus(request.id, 'done', session.user.id, null, resolvedCompanyId);
-      setRequests(rs => rs.map(r => r.id === request.id
+      const all = await companyService.fetchAll();
+      const q = query.trim().toLowerCase();
+      return q ? all.filter(c => c.name.toLowerCase().includes(q)) : all.slice(0, 10);
+    } catch { return []; }
+  }
+
+  // 기업 검색어 변경
+  async function handleLinkSearch(query) {
+    const results = await searchCompanies(query);
+    setLinkUI(prev => ({ ...prev, searchQuery: query, results, selectedId: '' }));
+  }
+
+  // 기업 연결 확정
+  async function handleLinkConfirm() {
+    if (!linkUI?.selectedId) return alert('연결할 기업을 선택해주세요');
+    const selected = linkUI.results.find(c => String(c.id) === linkUI.selectedId);
+    const confirmed = window.confirm(`"${selected?.name}"과 이 요청을 연결하고 처리 완료하시겠습니까?`);
+    if (!confirmed) return;
+    await completeDone(linkUI.requestId, linkUI.selectedId);
+    setLinkUI(null);
+  }
+
+  // 연결 없이 완료 (연결 UI에서 취소)
+  async function handleLinkSkip() {
+    const confirmed = window.confirm('결과 연결 없이 처리 완료하시겠습니까?');
+    if (!confirmed) return;
+    await completeDone(linkUI.requestId, null);
+    setLinkUI(null);
+  }
+
+  // 실제 done 처리
+  async function completeDone(requestId, resolvedCompanyId) {
+    try {
+      await requestService.updateRequestStatus(requestId, 'done', session.user.id, null, resolvedCompanyId);
+      setRequests(rs => rs.map(r => r.id === requestId
         ? { ...r, status: 'done', resolved_company_id: resolvedCompanyId }
         : r
       ));
@@ -182,19 +230,14 @@ function RequestManagementView({ session, onNavigate }) {
                 <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
                   {r.status === 'pending' && (
                     <>
-                      {/* 이동 버튼 — pending일 때만 표시 */}
                       <button
                         onClick={() => onNavigate && onNavigate(r)}
                         style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
                       >
-                        {{
-                          ADD_COMPANY:       '기업 추가 이동',
-                          UPDATE_FINANCIALS: '재무 이동',
-                          UPDATE_VALUATION:  '기업가치 이동',
-                        }[r.request_type] || '이동'}
+                        {{ ADD_COMPANY: '기업 추가 이동', UPDATE_FINANCIALS: '재무 이동', UPDATE_VALUATION: '기업가치 이동' }[r.request_type] || '이동'}
                       </button>
                       <button
-                        onClick={() => handleDone(r)}
+                        onClick={() => r.request_type === 'ADD_COMPANY' ? handleDoneAddCompany(r) : handleDoneUpdate(r)}
                         style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
                       >처리 완료</button>
                     </>
@@ -206,6 +249,60 @@ function RequestManagementView({ session, onNavigate }) {
                   )}
                 </div>
               </div>
+
+              {/* 기업 연결 인라인 UI — ADD_COMPANY 요청에서 "연결" 선택 시 표시 */}
+              {linkUI?.requestId === r.id && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text2)', marginBottom: 8 }}>기업 검색 및 연결</div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <input
+                      className="form-input"
+                      style={{ flex: 1, fontSize: 12, padding: '6px 10px' }}
+                      placeholder="기업명으로 검색..."
+                      value={linkUI.searchQuery}
+                      onChange={e => handleLinkSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  {linkUI.results.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'var(--text3)', padding: '4px 0 8px' }}>검색 결과가 없습니다</div>
+                  ) : (
+                    <div style={{ marginBottom: 10, maxHeight: 160, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 6 }}>
+                      {linkUI.results.map(c => (
+                        <div
+                          key={c.id}
+                          onClick={() => setLinkUI(prev => ({ ...prev, selectedId: String(c.id) }))}
+                          style={{
+                            padding: '8px 12px', fontSize: 12, cursor: 'pointer',
+                            background: linkUI.selectedId === String(c.id) ? 'rgba(255,106,0,0.08)' : 'var(--bg2)',
+                            borderBottom: '1px solid var(--border)',
+                            color: linkUI.selectedId === String(c.id) ? 'var(--accent)' : 'var(--text)',
+                            fontWeight: linkUI.selectedId === String(c.id) ? 600 : 400,
+                          }}
+                        >
+                          {c.name}
+                          {c.industry && <span style={{ marginLeft: 8, color: 'var(--text3)', fontWeight: 400 }}>{c.industry}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={handleLinkConfirm}
+                      disabled={!linkUI.selectedId}
+                      style={{ fontSize: 11, padding: '5px 14px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: linkUI.selectedId ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontWeight: 500, opacity: linkUI.selectedId ? 1 : 0.5 }}
+                    >연결 후 완료</button>
+                    <button
+                      onClick={handleLinkSkip}
+                      style={{ fontSize: 11, padding: '5px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit' }}
+                    >연결 없이 완료</button>
+                    <button
+                      onClick={() => setLinkUI(null)}
+                      style={{ fontSize: 11, padding: '5px 10px', borderRadius: 6, border: 'none', background: 'none', color: 'var(--text3)', cursor: 'pointer', fontFamily: 'inherit' }}
+                    >취소</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
