@@ -1,10 +1,11 @@
 // ─── APP ─────────────────────────────────────────────────
 function App() {
   const { useState, useEffect } = React;
-  const [selected,    setSelected]    = useState(null);
-  const [session,     setSession]     = useState(undefined);
-  const [profile,     setProfile]     = useState(null);
-  const [view, setView] = useState('list'); // 'list' | 'users' | 'requests' | 'myRequests'
+  const [selected,       setSelected]       = useState(null);
+  const [session,        setSession]        = useState(undefined);
+  const [profile,        setProfile]        = useState(null);
+  const [view,           setView]           = useState('list'); // 'list' | 'users' | 'requests' | 'myRequests'
+  const [prefillRequest, setPrefillRequest] = useState(null);
 
   useEffect(() => {
     authService.getSession().then(s => {
@@ -46,19 +47,15 @@ function App() {
   // 요청 관리 → 해당 화면으로 이동
   function handleNavigateFromRequest(request) {
     if (request.request_type === 'ADD_COMPANY') {
+      // ListView로 이동 후 prefill된 기업 추가 모달 열기
       setView('list');
       setSelected(null);
+      setPrefillRequest(request);
     } else {
-      // UPDATE_FINANCIALS / UPDATE_VALUATION → 해당 기업 DetailView로 이동
-      // company_id 기준으로 companies 목록에서 찾아서 selected에 세팅
       companyService.fetchAll().then(companies => {
         const company = companies.find(c => String(c.id) === String(request.company_id));
-        if (company) {
-          setSelected(company);
-          setView('list');
-        } else {
-          alert('해당 기업을 찾을 수 없습니다');
-        }
+        if (company) { setSelected(company); setView('list'); }
+        else alert('해당 기업을 찾을 수 없습니다');
       }).catch(() => alert('기업 조회 실패'));
     }
   }
@@ -167,7 +164,16 @@ function App() {
         ) : view === 'requests' && isAdmin ? (
           <RequestManagementView session={session} onNavigate={handleNavigateFromRequest} />
         ) : view === 'myRequests' && !isAdmin ? (
-          <MyRequestsView session={session} />
+          <MyRequestsView
+            session={session}
+            onNavigate={(companyId) => {
+              companyService.fetchAll().then(companies => {
+                const c = companies.find(x => String(x.id) === String(companyId));
+                if (c) { setSelected(c); setView('list'); }
+                else alert('기업을 찾을 수 없습니다');
+              });
+            }}
+          />
         ) : selected ? (
           <DetailView
             company={selected}
@@ -177,7 +183,14 @@ function App() {
             userProfile={profile}
           />
         ) : (
-          <ListView onSelect={setSelected} isAdmin={isAdmin} session={session} profile={profile} />
+          <ListView
+            onSelect={setSelected}
+            isAdmin={isAdmin}
+            session={session}
+            profile={profile}
+            prefillRequest={prefillRequest}
+            onPrefillConsumed={() => setPrefillRequest(null)}
+          />
         )}
       </main>
     </div>
