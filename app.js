@@ -1,19 +1,17 @@
 // ─── APP ─────────────────────────────────────────────────
 function App() {
   const { useState, useEffect } = React;
-  const [selected,     setSelected]     = useState(null);
-  const [session,      setSession]      = useState(undefined); // undefined = 로딩 중
-  const [profile,      setProfile]      = useState(null);
+  const [selected,    setSelected]    = useState(null);
+  const [session,     setSession]     = useState(undefined);
+  const [profile,     setProfile]     = useState(null);
+  const [view,        setView]        = useState('list'); // 'list' | 'users'
 
-  // 세션 초기 확인 + 변경 구독
   useEffect(() => {
-    // 1) 현재 세션 확인
     authService.getSession().then(s => {
       setSession(s);
       if (s?.user) loadProfile(s.user.id);
     }).catch(() => setSession(null));
 
-    // 2) 세션 변경 감지 (Magic Link 클릭 후 리다이렉트 포함)
     const sub = authService.onAuthStateChange((event, s) => {
       setSession(s);
       if (s?.user) {
@@ -21,6 +19,7 @@ function App() {
       } else {
         setProfile(null);
         setSelected(null);
+        setView('list');
       }
     });
 
@@ -32,7 +31,6 @@ function App() {
       const p = await authService.getProfile(userId);
       setProfile(p);
     } catch(e) {
-      // profile이 아직 없으면 트리거가 생성 중 — 잠시 후 재시도
       setTimeout(() => {
         authService.getProfile(userId)
           .then(setProfile)
@@ -45,37 +43,73 @@ function App() {
     await authService.signOut();
   }
 
-  // 로딩 중
+  // ── 로딩 중 ───────────────────────────────────────────
   if (session === undefined) {
     return (
-      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
-        <div className="spinner"/>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div className="spinner" />
       </div>
     );
   }
 
-  // 미로그인
-  if (!session) {
-    return <LoginView/>;
+  // ── 미로그인 ──────────────────────────────────────────
+  if (!session) return <LoginView />;
+
+  // ── 접근 제한 (pending / blocked) ────────────────────
+  if (profile && profile.status !== 'active') {
+    const isPending = profile.status === 'pending';
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 40px', maxWidth: 400, width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 16 }}>{isPending ? '⏳' : '🚫'}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+            {isPending ? '승인 대기 중' : '접근이 제한된 계정'}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
+            {isPending
+              ? '관리자의 승인 후 서비스를 이용할 수 있습니다.\n승인 요청은 담당자에게 문의해주세요.'
+              : '계정 접근이 제한되었습니다.\n담당자에게 문의해주세요.'}
+          </div>
+          <button
+            onClick={handleSignOut}
+            style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontFamily: 'inherit' }}
+          >로그아웃</button>
+        </div>
+      </div>
+    );
   }
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin  = profile?.role === 'admin';
   const userName = profile?.name || session.user.email;
 
   return (
     <div className="app">
       <header className="header">
-        <div className="header-logo">
-          <span>●</span> Longlist <span style={{color:'var(--text3)',fontWeight:400}}>Platform</span>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:16}}>
-          <div style={{fontSize:12,color:'var(--text3)',fontFamily:'MaruBuri,sans-serif'}}>
-            {new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="header-logo">
+            <span>●</span> Longlist <span style={{ color: 'var(--text3)', fontWeight: 400 }}>Platform</span>
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:10}}>
-            <div style={{fontSize:12,color:'var(--text2)'}}>
+          {isAdmin && (
+            <nav style={{ display: 'flex', gap: 2 }}>
+              <button
+                className={`nav-btn ${view === 'list' ? 'active' : ''}`}
+                onClick={() => { setView('list'); setSelected(null); }}
+              >기업 목록</button>
+              <button
+                className={`nav-btn ${view === 'users' ? 'active' : ''}`}
+                onClick={() => { setView('users'); setSelected(null); }}
+              >사용자 관리</button>
+            </nav>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'MaruBuri,sans-serif' }}>
+            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 12, color: 'var(--text2)' }}>
               {isAdmin && (
-                <span style={{fontSize:10,background:'rgba(255,106,0,0.1)',color:'var(--accent)',border:'1px solid rgba(255,106,0,0.3)',borderRadius:4,padding:'1px 6px',marginRight:6,fontWeight:600}}>
+                <span style={{ fontSize: 10, background: 'rgba(255,106,0,0.1)', color: 'var(--accent)', border: '1px solid rgba(255,106,0,0.3)', borderRadius: 4, padding: '1px 6px', marginRight: 6, fontWeight: 600 }}>
                   ADMIN
                 </span>
               )}
@@ -83,23 +117,27 @@ function App() {
             </div>
             <button
               onClick={handleSignOut}
-              style={{fontSize:11,color:'var(--text3)',background:'none',border:'1px solid var(--border)',borderRadius:6,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit'}}
-            >
-              로그아웃
-            </button>
+              style={{ fontSize: 11, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
+            >로그아웃</button>
           </div>
         </div>
       </header>
+
       <main className="main">
-        {selected ? (
+        {view === 'users' && isAdmin ? (
+          <UserManagementView
+            onBack={() => setView('list')}
+            currentUserId={session.user.id}
+          />
+        ) : selected ? (
           <DetailView
             company={selected}
-            onBack={()=>setSelected(null)}
+            onBack={() => setSelected(null)}
             isAdmin={isAdmin}
             userProfile={profile}
           />
         ) : (
-          <ListView onSelect={setSelected} isAdmin={isAdmin}/>
+          <ListView onSelect={setSelected} isAdmin={isAdmin} />
         )}
       </main>
     </div>
