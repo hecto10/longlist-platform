@@ -3,14 +3,57 @@
 
 const companyService = {
 
-  // 전체 기업 목록 조회
+  // 전체 기업 목록 조회 (soft delete 제외)
   async fetchAll() {
     const { data, error } = await supabase
       .from('companies')
       .select('*')
+      .is('deleted_at', null)
       .order('name');
     if (error) throw error;
     return data || [];
+  },
+
+  // 기업 soft delete
+  async softDelete(id, deletedBy, reason) {
+    const { data: company, error: fetchError } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (fetchError) throw fetchError;
+
+    // deletion_logs에 snapshot 저장
+    const logId = crypto.randomUUID();
+    const { error: logError } = await supabase
+      .from('deletion_logs')
+      .insert({
+        id:         logId,
+        table_name: 'companies',
+        record_id:  String(id),
+        company_id: String(id),
+        reason,
+        snapshot:   company,
+        status:     'pending',
+      });
+    if (logError) throw logError;
+
+    // soft delete 실행
+    const { error } = await supabase
+      .from('companies')
+      .update({
+        deleted_at:    new Date().toISOString(),
+        deleted_by:    deletedBy,
+        delete_reason: reason,
+      })
+      .eq('id', id);
+    if (error) throw error;
+
+    // 로그 status → success
+    await supabase
+      .from('deletion_logs')
+      .update({ status: 'success' })
+      .eq('id', logId);
   },
 
   // 기업 추가
