@@ -1,11 +1,11 @@
 // ─── ADD COMPANY MODAL ───────────────────────────────────────
-function AddCompanyModal({ onClose, onSave, allTags, prefill }) {
-  const { useState } = React;
+function AddCompanyModal({ onClose, onSave, allTags, prefill, isAdmin, session }) {
+  const { useState, useRef } = React;
   const [form, setForm] = useState({
-    name:             prefill?.company_name  || '',
+    name:             prefill?.company_name || '',
     founded_date:     '',
     location:         '',
-    ceo:              prefill?.ceo           || '',
+    ceo:              prefill?.ceo          || '',
     employee_count:   '',
     listing_status:   '',
     industry:         '',
@@ -14,13 +14,14 @@ function AddCompanyModal({ onClose, onSave, allTags, prefill }) {
   });
   const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
+  const linkedRequestId = useRef('');
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
   async function submit() {
     if (!form.name.trim()) return alert('기업명을 입력해주세요');
     setLoading(true);
     try {
-      await companyService.insert({
+      const payload = {
         name:             form.name.trim(),
         founded_date:     form.founded_date     || null,
         location:         form.location         || null,
@@ -31,7 +32,24 @@ function AddCompanyModal({ onClose, onSave, allTags, prefill }) {
         tags:             selectedTags,
         ma_status:        form.ma_status        || 'X',
         inbound_outbound: form.inbound_outbound || null,
-      });
+      };
+
+      // 요청 연결이 있으면 id 반환이 필요 → insertWithReturn 사용
+      let newCompanyId = null;
+      if (isAdmin && session && linkedRequestId.current) {
+        const newCompany = await companyService.insertWithReturn(payload);
+        newCompanyId = String(newCompany.id);
+      } else {
+        await companyService.insert(payload);
+      }
+
+      // 요청 연결 처리
+      if (newCompanyId && linkedRequestId.current) {
+        await requestService.updateRequestStatus(
+          linkedRequestId.current, 'done', session.user.id, null, newCompanyId
+        );
+      }
+
       onSave(); onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
@@ -118,6 +136,15 @@ function AddCompanyModal({ onClose, onSave, allTags, prefill }) {
               <input className="form-input" placeholder="예: 아웃바운드 / HI 김민정 전무" value={form.inbound_outbound} onChange={e=>set('inbound_outbound',e.target.value)}/>
             </div>
           </div>
+
+          {isAdmin && (
+            <RequestLinkSection
+              requestType="ADD_COMPANY"
+              companyId={null}
+              onSelect={id => { linkedRequestId.current = id; }}
+            />
+          )}
+
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
             <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? '저장 중...' : '기업 추가'}</button>

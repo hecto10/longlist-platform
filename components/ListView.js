@@ -89,6 +89,8 @@ function ListView({ onSelect, isAdmin = false, session, profile, prefillRequest,
           onSave={() => { load(); setToast({ msg: '새 기업이 추가됐어요', type: 'success' }); }}
           allTags={allTags}
           prefill={addCompanyPrefill}
+          isAdmin={isAdmin}
+          session={session}
         />
       )}
 

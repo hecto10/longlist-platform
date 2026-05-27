@@ -57,6 +57,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           company={company}
           record={modal.record}
           onClose={closeModal}
+          isAdmin={isAdmin}
+          session={session}
           onSave={()=>{ load(); showToast(modal.record ? '재무실적이 수정됐어요' : '재무실적이 저장됐어요'); }}
         />
       )}
@@ -65,6 +67,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           company={company}
           record={modal.record}
           onClose={closeModal}
+          isAdmin={isAdmin}
+          session={session}
           onSave={()=>{ load(); showToast(modal.record ? '기업가치가 수정됐어요' : '기업가치가 저장됐어요'); }}
         />
       )}

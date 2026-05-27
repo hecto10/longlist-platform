@@ -100,6 +100,9 @@ function MyRequestsView({ session, onNavigate }) {
                       style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
                     >결과 보기 →</button>
                   )}
+                  {r.status === 'done' && !r.resolved_company_id && (
+                    <span style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap' }}>처리 완료 · 결과 미연결</span>
+                  )}
                 </div>
               </div>
             </div>

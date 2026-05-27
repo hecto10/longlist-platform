@@ -1,6 +1,6 @@
 // ─── VALUATION MODAL (신규 + 수정 공용) ──────────────────
-function ValuationModal({ company, record, onClose, onSave }) {
-  const { useState } = React;
+function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) {
+  const { useState, useRef } = React;
   const isEdit = !!record;
 
   const [form, setForm] = useState({
@@ -16,6 +16,8 @@ function ValuationModal({ company, record, onClose, onSave }) {
   const [changedBy, setChangedBy] = useState(isEdit ? getStoredUser() : '');
   const [reason,    setReason]    = useState('');
   const [loading,   setLoading]   = useState(false);
+  const linkedRequestId = useRef('');
+
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
   function handleChangedByBlur(v) {
@@ -37,16 +39,18 @@ function ValuationModal({ company, record, onClose, onSave }) {
       if (isEdit) {
         await companyService.updateValuation(record.id, payload);
         await companyService.logDataChange({
-          target_table: 'valuations',
-          target_id:    record.id,
-          company_id:   company.id,
-          old_snapshot: record,
-          new_snapshot: { ...record, ...payload },
-          changed_by:   changedBy.trim(),
-          reason:       reason.trim(),
+          target_table: 'valuations', target_id: record.id, company_id: company.id,
+          old_snapshot: record, new_snapshot: { ...record, ...payload },
+          changed_by: changedBy.trim(), reason: reason.trim(),
         });
       } else {
         await companyService.insertValuation({ company_id: company.id, ...payload });
+      }
+      // 요청 연결 처리
+      if (isAdmin && session && linkedRequestId.current) {
+        await requestService.updateRequestStatus(
+          linkedRequestId.current, 'done', session.user.id, null, String(company.id)
+        );
       }
       onSave(); onClose();
     } catch(e) {
@@ -60,9 +64,7 @@ function ValuationModal({ company, record, onClose, onSave }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">
-            {isEdit ? '기업가치 수정' : '기업가치 업데이트'} · {company.name}
-          </div>
+          <div className="modal-title">{isEdit ? '기업가치 수정' : '기업가치 업데이트'} · {company.name}</div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
@@ -101,6 +103,14 @@ function ValuationModal({ company, record, onClose, onSave }) {
                 </div>
               </div>
             </div>
+          )}
+
+          {isAdmin && (
+            <RequestLinkSection
+              requestType="UPDATE_VALUATION"
+              companyId={company.id}
+              onSelect={id => { linkedRequestId.current = id; }}
+            />
           )}
 
           <div className="modal-footer">
