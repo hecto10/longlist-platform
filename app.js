@@ -46,8 +46,17 @@ function App() {
 
   // 요청 관리 → 해당 화면으로 이동
   function handleNavigateFromRequest(request) {
+    // done 요청 "결과 보기" — resolved_company_id로 바로 이동
+    if (request._navigateDirect && request.resolved_company_id) {
+      companyService.fetchAll().then(companies => {
+        const c = companies.find(x => String(x.id) === String(request.resolved_company_id));
+        if (c) { setSelected(c); setView('list'); }
+        else alert('기업을 찾을 수 없습니다');
+      });
+      return;
+    }
+    // pending 요청 이동
     if (request.request_type === 'ADD_COMPANY') {
-      // ListView로 이동 후 prefill된 기업 추가 모달 열기
       setView('list');
       setSelected(null);
       setPrefillRequest(request);
