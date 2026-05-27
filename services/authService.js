@@ -50,4 +50,34 @@ const authService = {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
     return subscription;
   },
+
+  // ── 사용자 관리 (admin 전용) ────────────────────────────
+
+  // 전체 프로필 목록 조회
+  async fetchAllProfiles() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, name, role, status, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  // role 변경 (user ↔ admin)
+  async updateProfileRole(userId, role) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId);
+    if (error) throw error;
+  },
+
+  // status 변경 (pending → active → blocked)
+  async updateProfileStatus(userId, status) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ status })
+      .eq('id', userId);
+    if (error) throw error;
+  },
 };
