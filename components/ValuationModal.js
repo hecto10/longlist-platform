@@ -40,11 +40,20 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
         await companyService.updateValuation(record.id, payload);
         await companyService.logDataChange({
           target_table: 'valuations', target_id: record.id, company_id: company.id,
+          action_type:  'UPDATE',
           old_snapshot: record, new_snapshot: { ...record, ...payload },
-          changed_by: changedBy.trim(), reason: reason.trim(),
+          changed_by:   changedBy.trim(), reason: reason.trim(),
+          request_id:   linkedRequestId.current || null,
         });
       } else {
         await companyService.insertValuation({ company_id: company.id, ...payload });
+        await companyService.logDataChange({
+          target_table: 'valuations', target_id: null, company_id: company.id,
+          action_type:  'INSERT',
+          old_snapshot: null, new_snapshot: { company_id: company.id, ...payload },
+          changed_by:   session?.user?.email || null, reason: null,
+          request_id:   linkedRequestId.current || null,
+        });
       }
       // 요청 연결 처리
       if (isAdmin && session && linkedRequestId.current) {
