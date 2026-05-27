@@ -1,5 +1,5 @@
 // ─── LIST VIEW ────────────────────────────────────────────
-function ListView({ onSelect, isAdmin = false, session, profile }) {
+function ListView({ onSelect, isAdmin = false, session, profile, prefillRequest, onPrefillConsumed }) {
   const { useState, useEffect, useCallback } = React;
   const [companies, setCompanies] = useState([]);
   const [financials, setFinancials] = useState({});
@@ -10,8 +10,18 @@ function ListView({ onSelect, isAdmin = false, session, profile }) {
   const [sortBy, setSortBy] = useState('name');
   const [showUpload, setShowUpload] = useState(false);
   const [showAddCompany, setShowAddCompany] = useState(false);
+  const [addCompanyPrefill, setAddCompanyPrefill] = useState(null);
   const [showAddRequest, setShowAddRequest] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // 요청 관리에서 넘어온 prefill 처리
+  useEffect(() => {
+    if (prefillRequest?.request_type === 'ADD_COMPANY') {
+      setAddCompanyPrefill(prefillRequest.payload || null);
+      setShowAddCompany(true);
+      onPrefillConsumed && onPrefillConsumed();
+    }
+  }, [prefillRequest]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,9 +85,10 @@ function ListView({ onSelect, isAdmin = false, session, profile }) {
       )}
       {showAddCompany && (
         <AddCompanyModal
-          onClose={()=>setShowAddCompany(false)}
-          onSave={()=>{ load(); setToast({msg:'새 기업이 추가됐어요',type:'success'}); }}
+          onClose={() => { setShowAddCompany(false); setAddCompanyPrefill(null); }}
+          onSave={() => { load(); setToast({ msg: '새 기업이 추가됐어요', type: 'success' }); }}
           allTags={allTags}
+          prefill={addCompanyPrefill}
         />
       )}
 

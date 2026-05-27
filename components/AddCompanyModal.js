@@ -1,9 +1,16 @@
 // ─── ADD COMPANY MODAL ───────────────────────────────────────
-function AddCompanyModal({ onClose, onSave, allTags }) {
+function AddCompanyModal({ onClose, onSave, allTags, prefill }) {
   const { useState } = React;
   const [form, setForm] = useState({
-    name: '', founded_date: '', location: '', ceo: '', employee_count: '',
-    listing_status: '', industry: '', ma_status: 'X', inbound_outbound: ''
+    name:             prefill?.company_name  || '',
+    founded_date:     '',
+    location:         '',
+    ceo:              prefill?.ceo           || '',
+    employee_count:   '',
+    listing_status:   '',
+    industry:         '',
+    ma_status:        'X',
+    inbound_outbound: '',
   });
   const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -14,15 +21,15 @@ function AddCompanyModal({ onClose, onSave, allTags }) {
     setLoading(true);
     try {
       await companyService.insert({
-        name: form.name.trim(),
-        founded_date: form.founded_date || null,
-        location: form.location || null,
-        ceo: form.ceo || null,
-        employee_count: form.employee_count || null,
-        listing_status: form.listing_status || null,
-        industry: form.industry || null,
-        tags: selectedTags,
-        ma_status: form.ma_status || 'X',
+        name:             form.name.trim(),
+        founded_date:     form.founded_date     || null,
+        location:         form.location         || null,
+        ceo:              form.ceo              || null,
+        employee_count:   form.employee_count   || null,
+        listing_status:   form.listing_status   || null,
+        industry:         form.industry         || null,
+        tags:             selectedTags,
+        ma_status:        form.ma_status        || 'X',
         inbound_outbound: form.inbound_outbound || null,
       });
       onSave(); onClose();
@@ -37,10 +44,19 @@ function AddCompanyModal({ onClose, onSave, allTags }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">새 기업 추가</div>
+          <div className="modal-title">
+            새 기업 추가
+            {prefill && <span style={{ fontSize: 11, color: 'var(--accent)', marginLeft: 8, fontWeight: 400 }}>요청 정보 자동 입력됨</span>}
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
+          {prefill?.brand_name && (
+            <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--bg3)', borderRadius: 6, padding: '8px 12px', marginBottom: 12 }}>
+              브랜드명: <strong>{prefill.brand_name}</strong>
+              {prefill.website && <span style={{ marginLeft: 12 }}>웹사이트: <a href={prefill.website} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{prefill.website}</a></span>}
+            </div>
+          )}
           <div className="form-group">
             <label className="form-label">기업명 *</label>
             <input className="form-input" placeholder="기업명 입력" value={form.name} onChange={e=>set('name',e.target.value)}/>
@@ -83,11 +99,7 @@ function AddCompanyModal({ onClose, onSave, allTags }) {
           </div>
           <div className="form-group">
             <label className="form-label">태그</label>
-            <TagInput
-              selectedTags={selectedTags}
-              onChange={setSelectedTags}
-              suggestions={allTags || []}
-            />
+            <TagInput selectedTags={selectedTags} onChange={setSelectedTags} suggestions={allTags || []}/>
           </div>
           <div className="form-row">
             <div className="form-group">

@@ -20,10 +20,27 @@ function RequestManagementView({ session, onNavigate }) {
 
   useEffect(() => { load(); }, []);
 
-  async function handleDone(requestId) {
+  async function handleDone(request) {
+    let resolvedCompanyId = null;
+
+    // ADD_COMPANY면 company_id 연결 여부 확인
+    if (request.request_type === 'ADD_COMPANY') {
+      const input = window.prompt(
+        '생성된 기업 ID를 입력하면 user가 바로 확인할 수 있습니다.\n(모르면 빈칸으로 확인을 눌러주세요)',
+        ''
+      );
+      if (input === null) return; // 취소
+      resolvedCompanyId = input.trim() || null;
+    } else if (request.company_id) {
+      resolvedCompanyId = request.company_id;
+    }
+
     try {
-      await requestService.updateRequestStatus(requestId, 'done', session.user.id, null);
-      setRequests(rs => rs.map(r => r.id === requestId ? { ...r, status: 'done' } : r));
+      await requestService.updateRequestStatus(request.id, 'done', session.user.id, null, resolvedCompanyId);
+      setRequests(rs => rs.map(r => r.id === request.id
+        ? { ...r, status: 'done', resolved_company_id: resolvedCompanyId }
+        : r
+      ));
       setToast({ msg: '처리 완료로 변경됐어요', type: 'success' });
     } catch(e) {
       setToast({ msg: '변경 실패: ' + e.message, type: 'error' });
@@ -131,6 +148,22 @@ function RequestManagementView({ session, onNavigate }) {
                     </div>
                   )}
 
+                  {/* UPDATE 요청 구분 + 선택 row */}
+                  {(r.request_type === 'UPDATE_FINANCIALS' || r.request_type === 'UPDATE_VALUATION') && r.payload?.update_type && (
+                    <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--bg3)', borderRadius: 6, padding: '8px 12px', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 500, color: 'var(--text)' }}>
+                        {r.payload.update_type === 'new' ? '최신 데이터 업데이트' : '기존 데이터 수정'}
+                      </span>
+                      {r.payload.update_type === 'fix' && r.payload.old_snapshot && (() => {
+                        const s = r.payload.old_snapshot;
+                        const parts = r.request_type === 'UPDATE_FINANCIALS'
+                          ? [s.fiscal_date?.slice(0,4), s.quarter, s.revenue && `매출 ${Number(s.revenue).toLocaleString()}억`, s.operating_profit != null && `영업이익 ${Number(s.operating_profit).toLocaleString()}억`].filter(Boolean)
+                          : [s.valuation_date?.slice(0,10), s.valuation && `기업가치 ${Number(s.valuation).toLocaleString()}억`, s.pe_multiple && `P/E ${s.pe_multiple}x`].filter(Boolean);
+                        return <span style={{ color: 'var(--text3)', marginLeft: 8 }}>→ {parts.join(' / ')}</span>;
+                      })()}
+                    </div>
+                  )}
+
                   {/* 메모 */}
                   {r.memo && (
                     <div style={{ fontSize: 12, color: 'var(--text2)', fontStyle: 'italic' }}>
@@ -155,7 +188,7 @@ function RequestManagementView({ session, onNavigate }) {
                         }[r.request_type] || '이동'}
                       </button>
                       <button
-                        onClick={() => handleDone(r.id)}
+                        onClick={() => handleDone(r)}
                         style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
                       >처리 완료</button>
                     </>

@@ -1,5 +1,5 @@
 // ─── MY REQUESTS VIEW (user 전용) ────────────────────────
-function MyRequestsView({ session }) {
+function MyRequestsView({ session, onNavigate }) {
   const { useState, useEffect } = React;
   const [requests, setRequests] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -89,9 +89,17 @@ function MyRequestsView({ session }) {
                   )}
                 </div>
 
-                {/* 날짜 */}
-                <div style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {new Date(r.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {/* 날짜 + 결과 보기 */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap' }}>
+                    {new Date(r.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </div>
+                  {r.status === 'done' && r.resolved_company_id && onNavigate && (
+                    <button
+                      onClick={() => onNavigate(r.resolved_company_id)}
+                      style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                    >결과 보기 →</button>
+                  )}
                 </div>
               </div>
             </div>
