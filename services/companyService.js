@@ -21,6 +21,17 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 기업 추가 (생성된 row 반환 — 요청 연결용)
+  async insertWithReturn(payload) {
+    const { data, error } = await supabase
+      .from('companies')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   // 기업 수정
   async update(id, payload) {
     const { error } = await supabase

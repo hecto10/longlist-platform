@@ -1,6 +1,20 @@
 // ─── REQUEST SERVICE ──────────────────────────────────────
 const requestService = {
 
+  // pending 요청 목록 조회 (admin 모달용 — 유형별 필터)
+  async fetchPendingByType(type, companyId = null) {
+    let query = supabase
+      .from('company_requests')
+      .select('id, request_type, requester_name, company_name, request_purposes, memo, created_at, payload')
+      .eq('request_type', type)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if (companyId) query = query.eq('company_id', String(companyId));
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  },
+
   // 요청 등록 (user)
   async insertRequest({ request_type, requester_id, requester_name, company_id, company_name, payload, request_purposes, memo }) {
     const { error } = await supabase
