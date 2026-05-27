@@ -108,6 +108,14 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           onSave={() => { closeModal(); showToast('요청이 제출됐어요'); }}
         />
       )}
+      {modal?.type === 'softDelete' && (
+        <SoftDeleteModal
+          company={company}
+          session={session}
+          onClose={closeModal}
+          onDeleted={() => { closeModal(); showToast('기업이 삭제됐어요'); onBack(); }}
+        />
+      )}
 
       <button className="back-btn" onClick={onBack}>← 목록으로</button>
 
@@ -126,11 +134,12 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
             {(company.tags||[]).map(t=><span key={t} className="tag sector">{t}</span>)}
           </div>
         </div>
-        <div style={{display:'flex',gap:8}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
           {isAdmin && <button className="btn-edit" onClick={()=>openModal('edit')}>✎ 기업 수정</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('financial')}>+ 재무실적</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('valuation')}>+ 기업가치</button>}
           {isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('report')}>+ 보고 이력</button>}
+          {isAdmin && <button className="btn" style={{background:'rgba(220,38,38,0.08)',border:'1px solid rgba(220,38,38,0.3)',color:'var(--red)'}} onClick={()=>openModal('softDelete')}>🗑 기업 삭제</button>}
           {!isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('updateRequest', null, 'UPDATE_FINANCIALS')}>재무실적 업데이트 요청</button>}
           {!isAdmin && <button className="btn btn-secondary" onClick={()=>openModal('updateRequest', null, 'UPDATE_VALUATION')}>기업가치 업데이트 요청</button>}
         </div>
