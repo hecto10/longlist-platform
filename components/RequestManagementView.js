@@ -23,14 +23,9 @@ function RequestManagementView({ session, onNavigate }) {
   async function handleDone(request) {
     let resolvedCompanyId = null;
 
-    // ADD_COMPANY면 company_id 연결 여부 확인
     if (request.request_type === 'ADD_COMPANY') {
-      const input = window.prompt(
-        '생성된 기업 ID를 입력하면 user가 바로 확인할 수 있습니다.\n(모르면 빈칸으로 확인을 눌러주세요)',
-        ''
-      );
-      if (input === null) return; // 취소
-      resolvedCompanyId = input.trim() || null;
+      const confirmed = window.confirm('결과 기업이 연결되지 않습니다. 요청만 처리 완료하시겠습니까?');
+      if (!confirmed) return;
     } else if (request.company_id) {
       resolvedCompanyId = request.company_id;
     }
@@ -149,16 +144,27 @@ function RequestManagementView({ session, onNavigate }) {
                   )}
 
                   {/* UPDATE 요청 구분 + 선택 row */}
-                  {(r.request_type === 'UPDATE_FINANCIALS' || r.request_type === 'UPDATE_VALUATION') && r.payload?.update_type && (
+                  {(r.request_type === 'UPDATE_FINANCIALS' || r.request_type === 'UPDATE_VALUATION') && (
                     <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--bg3)', borderRadius: 6, padding: '8px 12px', marginBottom: 8 }}>
                       <span style={{ fontWeight: 500, color: 'var(--text)' }}>
-                        {r.payload.update_type === 'new' ? '최신 데이터 업데이트' : '기존 데이터 수정'}
+                        {r.payload?.update_type === 'new' ? '최신 데이터 업데이트'
+                          : r.payload?.update_type === 'fix' ? '기존 데이터 수정'
+                          : '업데이트 요청'}
                       </span>
-                      {r.payload.update_type === 'fix' && r.payload.old_snapshot && (() => {
+                      {r.payload?.update_type === 'fix' && r.payload?.old_snapshot && (() => {
                         const s = r.payload.old_snapshot;
                         const parts = r.request_type === 'UPDATE_FINANCIALS'
-                          ? [s.fiscal_date?.slice(0,4), s.quarter, s.revenue && `매출 ${Number(s.revenue).toLocaleString()}억`, s.operating_profit != null && `영업이익 ${Number(s.operating_profit).toLocaleString()}억`].filter(Boolean)
-                          : [s.valuation_date?.slice(0,10), s.valuation && `기업가치 ${Number(s.valuation).toLocaleString()}억`, s.pe_multiple && `P/E ${s.pe_multiple}x`].filter(Boolean);
+                          ? [
+                              s.fiscal_date?.slice(0, 4),
+                              s.quarter,
+                              s.revenue        != null && `매출 ${Number(s.revenue).toLocaleString()}억`,
+                              s.operating_profit != null && `영업이익 ${Number(s.operating_profit).toLocaleString()}억`,
+                            ].filter(Boolean)
+                          : [
+                              s.valuation_date?.slice(0, 10),
+                              s.valuation  != null && `기업가치 ${Number(s.valuation).toLocaleString()}억`,
+                              s.pe_multiple != null && `P/E ${s.pe_multiple}x`,
+                            ].filter(Boolean);
                         return <span style={{ color: 'var(--text3)', marginLeft: 8 }}>→ {parts.join(' / ')}</span>;
                       })()}
                     </div>

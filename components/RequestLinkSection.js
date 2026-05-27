@@ -22,6 +22,45 @@ function RequestLinkSection({ requestType, companyId, onSelect }) {
 
   function makeRequestLabel(r) {
     const date = new Date(r.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+
+    if (r.request_type === 'UPDATE_FINANCIALS' || r.request_type === 'UPDATE_VALUATION') {
+      const updateType = r.payload?.update_type;
+      const snapshot   = r.payload?.old_snapshot;
+
+      let typeStr = updateType === 'new' ? '최신 데이터 업데이트'
+                  : updateType === 'fix' ? '기존 데이터 수정'
+                  : '업데이트 요청';
+
+      let rowStr = '';
+      if (updateType === 'fix' && snapshot) {
+        if (r.request_type === 'UPDATE_FINANCIALS') {
+          const parts = [
+            snapshot.fiscal_date?.slice(0, 4),
+            snapshot.quarter,
+            snapshot.revenue        != null && `매출 ${Number(snapshot.revenue).toLocaleString()}억`,
+            snapshot.operating_profit != null && `영업이익 ${Number(snapshot.operating_profit).toLocaleString()}억`,
+          ].filter(Boolean);
+          rowStr = parts.join(' / ');
+        } else {
+          const parts = [
+            snapshot.valuation_date?.slice(0, 10),
+            snapshot.valuation  != null && `기업가치 ${Number(snapshot.valuation).toLocaleString()}억`,
+            snapshot.pe_multiple != null && `P/E ${snapshot.pe_multiple}x`,
+          ].filter(Boolean);
+          rowStr = parts.join(' / ');
+        }
+      }
+
+      const purposes = (r.request_purposes || []).join(', ');
+      return [
+        `${r.requester_name} · ${date}`,
+        typeStr,
+        rowStr,
+        purposes,
+      ].filter(Boolean).join(' · ');
+    }
+
+    // ADD_COMPANY — 기존 방식
     const purposes = (r.request_purposes || []).join(', ');
     return `${r.requester_name} · ${date}${purposes ? ' · ' + purposes : ''}`;
   }
