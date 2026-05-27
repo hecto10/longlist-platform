@@ -1,5 +1,5 @@
 // ─── REQUEST MANAGEMENT VIEW (admin 전용) ────────────────
-function RequestManagementView({ session }) {
+function RequestManagementView({ session, onNavigate }) {
   const { useState, useEffect } = React;
   const [requests, setRequests] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -140,13 +140,27 @@ function RequestManagementView({ session }) {
                 </div>
 
                 {/* 액션 버튼 */}
-                <div style={{ flexShrink: 0 }}>
-                  {r.status === 'pending' ? (
-                    <button
-                      onClick={() => handleDone(r.id)}
-                      style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
-                    >처리 완료</button>
-                  ) : (
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                  {r.status === 'pending' && (
+                    <>
+                      {/* 이동 버튼 — pending일 때만 표시 */}
+                      <button
+                        onClick={() => onNavigate && onNavigate(r)}
+                        style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                      >
+                        {{
+                          ADD_COMPANY:       '기업 추가 이동',
+                          UPDATE_FINANCIALS: '재무 이동',
+                          UPDATE_VALUATION:  '기업가치 이동',
+                        }[r.request_type] || '이동'}
+                      </button>
+                      <button
+                        onClick={() => handleDone(r.id)}
+                        style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}
+                      >처리 완료</button>
+                    </>
+                  )}
+                  {r.status === 'done' && (
                     <span style={{ fontSize: 11, color: 'var(--text3)' }}>
                       {r.reviewed_at && new Date(r.reviewed_at).toLocaleDateString('ko-KR')}
                     </span>
