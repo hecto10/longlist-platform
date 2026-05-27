@@ -243,9 +243,18 @@ function RequestManagementView({ session, onNavigate }) {
                     </>
                   )}
                   {r.status === 'done' && (
-                    <span style={{ fontSize: 11, color: 'var(--text3)' }}>
-                      {r.reviewed_at && new Date(r.reviewed_at).toLocaleDateString('ko-KR')}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                        {r.reviewed_at && new Date(r.reviewed_at).toLocaleDateString('ko-KR')}
+                      </span>
+                      {r.resolved_company_id
+                        ? <button
+                            onClick={() => onNavigate && onNavigate({ ...r, _navigateDirect: true })}
+                            style={{ fontSize: 11, padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(22,163,74,0.4)', background: 'rgba(22,163,74,0.08)', color: 'var(--green)', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                          >결과 보기 →</button>
+                        : <span style={{ fontSize: 11, color: 'var(--text3)' }}>결과 미연결</span>
+                      }
+                    </div>
                   )}
                 </div>
               </div>
