@@ -60,19 +60,31 @@ function App() {
     const isPending = profile.status === 'pending';
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 40px', maxWidth: 400, width: '100%', textAlign: 'center' }}>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 16 }}>{isPending ? '⏳' : '🚫'}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>
             {isPending ? '승인 대기 중' : '접근이 제한된 계정'}
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.7 }}>
-            {isPending
-              ? '관리자의 승인 후 서비스를 이용할 수 있습니다.\n승인 요청은 담당자에게 문의해주세요.'
-              : '계정 접근이 제한되었습니다.\n담당자에게 문의해주세요.'}
-          </div>
+          {isPending ? (
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.9 }}>
+              관리자 승인 후 서비스를 이용할 수 있습니다.<br/>
+              승인 요청은 이미 접수되었습니다.<br/>
+              추가 로그인 링크 요청은 필요하지 않습니다.<br/>
+              <br/>
+              문의: <a href="mailto:mgtplan_of@hecto.co.kr" style={{ color: 'var(--accent)', textDecoration: 'none' }}>mgtplan_of@hecto.co.kr</a>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.9 }}>
+              계정 접근이 제한되었습니다.<br/>
+              사유 확인 또는 재승인이 필요한 경우<br/>
+              담당자에게 문의해주세요.<br/>
+              <br/>
+              문의: <a href="mailto:mgtplan_of@hecto.co.kr" style={{ color: 'var(--accent)', textDecoration: 'none' }}>mgtplan_of@hecto.co.kr</a>
+            </div>
+          )}
           <button
             onClick={handleSignOut}
-            style={{ marginTop: 24, fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ marginTop: 28, fontSize: 13, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontFamily: 'inherit' }}
           >로그아웃</button>
         </div>
       </div>
