@@ -173,20 +173,26 @@ const companyService = {
     if (error) throw error;
   },
 
-  // 재무실적 추가
+  // 재무실적 추가 (생성된 row 반환)
   async insertFinancial(payload) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('financials')
-      .insert(payload);
+      .insert(payload)
+      .select()
+      .single();
     if (error) throw error;
+    return data;
   },
 
-  // 기업가치 추가
+  // 기업가치 추가 (생성된 row 반환)
   async insertValuation(payload) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('valuations')
-      .insert(payload);
+      .insert(payload)
+      .select()
+      .single();
     if (error) throw error;
+    return data;
   },
 
   // 보고 이력 추가
