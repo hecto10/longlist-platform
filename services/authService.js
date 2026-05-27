@@ -29,7 +29,7 @@ const authService = {
   async getProfile(userId) {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, role')
+      .select('id, name, role, status')
       .eq('id', userId)
       .single();
     if (error) throw error;
