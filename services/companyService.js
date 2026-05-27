@@ -297,19 +297,20 @@ const companyService = {
     if (error) throw error;
   },
 
-  // 재무/기업가치/보고이력 수정 이력 저장
-  async logDataChange({ target_table, target_id, company_id, old_snapshot, new_snapshot, changed_by, reason }) {
+  // 재무/기업가치/보고이력 변경 이력 저장 (INSERT / UPDATE)
+  async logDataChange({ target_table, target_id, company_id, action_type = 'UPDATE', old_snapshot, new_snapshot, changed_by, reason, request_id }) {
     const { error } = await supabase
       .from('data_change_logs')
       .insert({
         target_table,
-        target_id:    String(target_id),
-        company_id:   String(company_id),
-        action_type:  'UPDATE',
-        old_snapshot,
+        target_id:   target_id != null ? String(target_id) : null,
+        company_id:  String(company_id),
+        action_type,
+        old_snapshot: old_snapshot ?? null,
         new_snapshot,
-        changed_by,
-        reason,
+        changed_by:  changed_by   || null,
+        reason:      reason       || null,
+        request_id:  request_id   || null,
       });
     if (error) throw error;
   },
