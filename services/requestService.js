@@ -41,14 +41,15 @@ const requestService = {
   },
 
   // 요청 상태 변경 (admin)
-  async updateRequestStatus(requestId, status, reviewedBy, reviewNote) {
+  async updateRequestStatus(requestId, status, reviewedBy, reviewNote, resolvedCompanyId = null) {
     const { error } = await supabase
       .from('company_requests')
       .update({
         status,
-        reviewed_by:  reviewedBy || null,
-        reviewed_at:  new Date().toISOString(),
-        review_note:  reviewNote || null,
+        reviewed_by:          reviewedBy || null,
+        reviewed_at:          new Date().toISOString(),
+        review_note:          reviewNote || null,
+        resolved_company_id:  resolvedCompanyId,
       })
       .eq('id', requestId);
     if (error) throw error;
