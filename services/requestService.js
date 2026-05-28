@@ -31,6 +31,16 @@ const requestService = {
         status:           'pending',
       });
     if (error) throw error;
+
+    // admin에게 알림
+    const typeLabel = { ADD_COMPANY: '기업 추가', UPDATE_FINANCIALS: '재무 업데이트', UPDATE_VALUATION: '기업가치 업데이트' };
+    await notificationService.insert({
+      recipient_role: 'admin',
+      type:      'NEW_REQUEST',
+      title:     `새 요청: ${typeLabel[request_type] || request_type}`,
+      message:   `${requester_name}${company_name ? ' · ' + company_name : ''}`,
+      link_type: 'requests',
+    });
   },
 
   // 본인 요청 목록 조회 (user)
@@ -56,6 +66,17 @@ const requestService = {
 
   // 요청 상태 변경 (admin)
   async updateRequestStatus(requestId, status, reviewedBy, reviewNote, resolvedCompanyId = null) {
+    // 변경 전 요청 정보 조회 (알림 생성용)
+    let requestRow = null;
+    if (status === 'done') {
+      const { data } = await supabase
+        .from('company_requests')
+        .select('request_type, requester_id, company_name, resolved_company_id')
+        .eq('id', requestId)
+        .single();
+      requestRow = data;
+    }
+
     const { error } = await supabase
       .from('company_requests')
       .update({
@@ -67,5 +88,19 @@ const requestService = {
       })
       .eq('id', requestId);
     if (error) throw error;
+
+    // done 처리 시 requester에게 알림
+    if (status === 'done' && requestRow?.requester_id) {
+      const typeLabel = { ADD_COMPANY: '기업 등록', UPDATE_FINANCIALS: '재무실적 업데이트', UPDATE_VALUATION: '기업가치 업데이트' };
+      const hasCompany = resolvedCompanyId || requestRow.resolved_company_id;
+      await notificationService.insert({
+        recipient_id: requestRow.requester_id,
+        type:      'REQUEST_DONE',
+        title:     `요청이 처리 완료됐습니다`,
+        message:   `${typeLabel[requestRow.request_type] || '요청'}${requestRow.company_name ? ' · ' + requestRow.company_name : ''}`,
+        link_type: hasCompany ? 'company' : null,
+        link_id:   hasCompany ? String(hasCompany) : null,
+      });
+    }
   },
 };

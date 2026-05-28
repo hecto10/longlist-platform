@@ -79,5 +79,16 @@ const authService = {
       .update({ status })
       .eq('id', userId);
     if (error) throw error;
+
+    // active 승인 시 해당 user에게 알림
+    if (status === 'active') {
+      await notificationService.insert({
+        recipient_id: userId,
+        type:      'USER_APPROVED',
+        title:     '가입이 승인됐습니다',
+        message:   '이제 플랫폼의 모든 기능을 이용하실 수 있습니다.',
+        link_type: 'list',
+      });
+    }
   },
 };
