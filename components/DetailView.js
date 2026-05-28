@@ -2,11 +2,12 @@
 function DetailView({ company: initialCompany, onBack, isAdmin = false, session, userProfile }) {
   const { useState, useEffect, useCallback } = React;
   const [company, setCompany] = useState(initialCompany);
-  const [financials, setFinancials] = useState([]);
-  const [valuations, setValuations] = useState([]);
-  const [reports, setReports] = useState([]);
+  const [financials,       setFinancials]       = useState([]);
+  const [valuations,       setValuations]       = useState([]);
+  const [reports,          setReports]          = useState([]);
+  const [employeeHistory,  setEmployeeHistory]  = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
-  // modal: null | { type: 'edit'|'financial'|'valuation'|'report'|'updateRequest', record: object|null, requestType: string|null }
+  // modal: null | { type: 'edit'|'financial'|'valuation'|'report'|'updateRequest'|'employeeHistory', record: object|null, requestType: string|null }
   const [modal, setModal] = useState(null);
   const openModal = (type, record = null, requestType = null) => setModal({ type, record, requestType });
   const closeModal = () => setModal(null);
@@ -14,15 +15,17 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
   const [allTagsForEdit, setAllTagsForEdit] = useState([]);
 
   const load = useCallback(async () => {
-    const [f, v, r, companies] = await Promise.all([
+    const [f, v, r, companies, eh] = await Promise.all([
       companyService.fetchFinancialsByCompany(initialCompany.id),
       companyService.fetchValuationsByCompany(initialCompany.id),
       companyService.fetchReportsByCompany(initialCompany.id),
       companyService.fetchAll(),
+      companyService.fetchEmployeeHistory(initialCompany.id),
     ]);
     setFinancials(f);
     setValuations(v);
     setReports(r);
+    setEmployeeHistory(eh);
     const updated = companies.find(c => c.id === initialCompany.id);
     if (updated) setCompany(updated);
   }, [initialCompany.id]);
@@ -115,6 +118,15 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           session={session}
           onClose={closeModal}
           onDeleted={() => { closeModal(); showToast('기업이 삭제됐어요'); onBack(); }}
+        />
+      )}
+      {modal?.type === 'employeeHistory' && (
+        <EmployeeHistoryModal
+          company={company}
+          record={modal.record}
+          session={session}
+          onClose={closeModal}
+          onSave={() => { load(); showToast(modal.record ? '임직원 수가 수정됐어요' : '임직원 수가 저장됐어요'); }}
         />
       )}
 
@@ -222,6 +234,102 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
             </div>
           </div>
         </div>
+
+        {/* ── 임직원 수 추이 ── */}
+        {(() => {
+          const ehSorted = [...employeeHistory].sort((a,b) => new Date(a.as_of_date) - new Date(b.as_of_date));
+          const counts   = ehSorted.map(e => e.employee_count);
+          const maxCount = Math.max(...counts, 1);
+
+          return (
+            <div className="full-width-section" style={{marginTop:20}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                <div className="section-title" style={{marginBottom:0}}>임직원 수 추이</div>
+                {isAdmin && (
+                  <button
+                    className="btn btn-secondary"
+                    style={{fontSize:12,padding:'5px 12px'}}
+                    onClick={() => openModal('employeeHistory')}
+                  >+ 추가</button>
+                )}
+              </div>
+
+              {ehSorted.length === 0 ? (
+                <div style={{color:'var(--text3)',fontSize:13}}>임직원 수 이력이 없습니다</div>
+              ) : (
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+
+                  {/* 막대 그래프 */}
+                  <div>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,paddingBottom:20,position:'relative'}}>
+                      {ehSorted.map((e, i) => {
+                        const barH = Math.max(4, Math.round((e.employee_count / maxCount) * 80));
+                        const prev = ehSorted[i - 1];
+                        const chg  = prev ? ((e.employee_count - prev.employee_count) / prev.employee_count * 100).toFixed(1) : null;
+                        return (
+                          <div key={e.id} style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1,gap:4}}>
+                            {chg !== null && (
+                              <div style={{fontSize:9,color:Number(chg)>=0?'var(--green)':'var(--red)',whiteSpace:'nowrap'}}>
+                                {Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%
+                              </div>
+                            )}
+                            <div
+                              title={`${e.employee_count}명`}
+                              style={{width:'100%',maxWidth:32,background:'var(--accent)',borderRadius:'3px 3px 0 0',height:barH,transition:'height 0.3s'}}
+                            />
+                            <div style={{fontSize:9,color:'var(--text3)',textAlign:'center',lineHeight:1.3}}>
+                              {new Date(e.as_of_date).getFullYear()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{fontSize:11,color:'var(--text3)',textAlign:'center',marginTop:2}}>
+                      최신: <strong style={{color:'var(--text)'}}>{ehSorted[ehSorted.length-1]?.employee_count?.toLocaleString()}명</strong>
+                    </div>
+                  </div>
+
+                  {/* 이력 테이블 */}
+                  <div>
+                    <table className="history-table" style={{fontSize:12}}>
+                      <thead>
+                        <tr>
+                          <th style={{textAlign:'left',fontSize:10}}>기준일</th>
+                          <th style={{fontSize:10}}>임직원 수</th>
+                          <th style={{fontSize:10,textAlign:'left'}}>출처</th>
+                          {isAdmin && <th style={{fontSize:10}}></th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...ehSorted].reverse().map(e => (
+                          <tr key={e.id}>
+                            <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
+                              {fmtDate(e.as_of_date)}
+                            </td>
+                            <td style={{fontSize:12,fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>
+                              {e.employee_count?.toLocaleString()}명
+                            </td>
+                            <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>
+                              {e.source || '—'}
+                            </td>
+                            {isAdmin && (
+                              <td style={{textAlign:'right'}}>
+                                <button
+                                  className="row-edit-btn"
+                                  onClick={() => openModal('employeeHistory', e)}
+                                >✎</button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       )}
 
       {activeTab === 'financials' && (() => {
