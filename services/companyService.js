@@ -327,12 +327,13 @@ const companyService = {
 
   // ── 임직원 수 이력 ──────────────────────────────────────
 
-  // 기업별 임직원 이력 조회 (날짜 내림차순)
+  // 기업별 임직원 이력 조회 (soft delete 제외, 날짜 내림차순)
   async fetchEmployeeHistory(companyId) {
     const { data, error } = await supabase
       .from('employee_history')
       .select('*')
       .eq('company_id', String(companyId))
+      .is('deleted_at', null)
       .order('as_of_date', { ascending: false });
     if (error) throw error;
     return data || [];
@@ -355,11 +356,11 @@ const companyService = {
     if (error) throw error;
   },
 
-  // 임직원 이력 삭제
+  // 임직원 이력 soft delete
   async deleteEmployeeHistory(id) {
     const { error } = await supabase
       .from('employee_history')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
   },
