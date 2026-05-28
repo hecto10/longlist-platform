@@ -231,10 +231,6 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                   {calcPE && nearestF && <div className="info-row"><span className="info-label" style={{fontSize:11}}>기준 실적</span><span className="info-value" style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(nearestF.fiscal_date)} OP {fmt(nearestF.operating_profit)}</span></div>}
                 </>;
               })() : <div style={{color:'var(--text3)',fontSize:13}}>기업가치 데이터가 없습니다</div>}
-            </div>
-          </div>
-        </div>
-
         {/* ── 임직원 수 추이 ── */}
         {(() => {
           const ehSorted = [...employeeHistory].sort((a,b) => new Date(a.as_of_date) - new Date(b.as_of_date));
@@ -258,8 +254,6 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 <div style={{color:'var(--text3)',fontSize:13}}>임직원 수 이력이 없습니다</div>
               ) : (
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
-
-                  {/* 막대 그래프 */}
                   <div>
                     <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,paddingBottom:20,position:'relative'}}>
                       {ehSorted.map((e, i) => {
@@ -274,10 +268,10 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                               </div>
                             )}
                             <div
-                              title={`${e.employee_count}명`}
-                              style={{width:'100%',maxWidth:32,background:'var(--accent)',borderRadius:'3px 3px 0 0',height:barH,transition:'height 0.3s'}}
+                              title={e.employee_count + '명'}
+                              style={{width:'100%',maxWidth:32,background:'var(--accent)',borderRadius:'3px 3px 0 0',height:barH}}
                             />
-                            <div style={{fontSize:9,color:'var(--text3)',textAlign:'center',lineHeight:1.3}}>
+                            <div style={{fontSize:9,color:'var(--text3)',textAlign:'center'}}>
                               {new Date(e.as_of_date).getFullYear()}
                             </div>
                           </div>
@@ -288,48 +282,36 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       최신: <strong style={{color:'var(--text)'}}>{ehSorted[ehSorted.length-1]?.employee_count?.toLocaleString()}명</strong>
                     </div>
                   </div>
-
-                  {/* 이력 테이블 */}
-                  <div>
-                    <table className="history-table" style={{fontSize:12}}>
-                      <thead>
-                        <tr>
-                          <th style={{textAlign:'left',fontSize:10}}>기준일</th>
-                          <th style={{fontSize:10}}>임직원 수</th>
-                          <th style={{fontSize:10,textAlign:'left'}}>출처</th>
-                          {isAdmin && <th style={{fontSize:10}}></th>}
+                  <table className="history-table" style={{fontSize:12}}>
+                    <thead>
+                      <tr>
+                        <th style={{textAlign:'left',fontSize:10}}>기준일</th>
+                        <th style={{fontSize:10}}>임직원 수</th>
+                        <th style={{fontSize:10,textAlign:'left'}}>출처</th>
+                        {isAdmin && <th style={{fontSize:10}}></th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...ehSorted].reverse().map(e => (
+                        <tr key={e.id}>
+                          <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>{fmtDate(e.as_of_date)}</td>
+                          <td style={{fontSize:12,fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>{e.employee_count?.toLocaleString()}명</td>
+                          <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>{e.source||'—'}</td>
+                          {isAdmin && (
+                            <td style={{textAlign:'right'}}>
+                              <button className="row-edit-btn" onClick={() => openModal('employeeHistory', e)}>✎</button>
+                            </td>
+                          )}
                         </tr>
-                      </thead>
-                      <tbody>
-                        {[...ehSorted].reverse().map(e => (
-                          <tr key={e.id}>
-                            <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>
-                              {fmtDate(e.as_of_date)}
-                            </td>
-                            <td style={{fontSize:12,fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>
-                              {e.employee_count?.toLocaleString()}명
-                            </td>
-                            <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>
-                              {e.source || '—'}
-                            </td>
-                            {isAdmin && (
-                              <td style={{textAlign:'right'}}>
-                                <button
-                                  className="row-edit-btn"
-                                  onClick={() => openModal('employeeHistory', e)}
-                                >✎</button>
-                              </td>
-                            )}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
           );
         })()}
+        </div>
       )}
 
       {activeTab === 'financials' && (() => {
