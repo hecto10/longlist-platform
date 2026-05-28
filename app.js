@@ -164,6 +164,24 @@ function App() {
             {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <NotificationBell
+              session={session}
+              profile={profile}
+              onNavigate={(type, id) => {
+                if (type === 'company' && id) {
+                  companyService.fetchAll().then(cos => {
+                    const c = cos.find(x => String(x.id) === String(id));
+                    if (c) { setSelected(c); setView('list'); }
+                  });
+                } else if (type === 'requests') {
+                  setView('requests'); setSelected(null);
+                } else if (type === 'users') {
+                  setView('users'); setSelected(null);
+                } else if (type === 'list') {
+                  setView('list'); setSelected(null);
+                }
+              }}
+            />
             <div style={{ fontSize: 12, color: 'var(--text2)' }}>
               {isAdmin && (
                 <span style={{ fontSize: 10, background: 'rgba(255,106,0,0.1)', color: 'var(--accent)', border: '1px solid rgba(255,106,0,0.3)', borderRadius: 4, padding: '1px 6px', marginRight: 6, fontWeight: 600 }}>
