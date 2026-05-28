@@ -118,7 +118,6 @@ function ListView({ onSelect, isAdmin = false, session, profile, prefillRequest,
           <option value="updated">최근 업데이트순</option>
         </select>
         {isAdmin && <button className="btn btn-primary" onClick={()=>setShowAddCompany(true)}>+ 기업 추가</button>}
-        {isAdmin && <button className="btn btn-success" onClick={()=>setShowUpload(true)}>📊 엑셀 업로드</button>}
         {!isAdmin && <button className="btn btn-secondary" onClick={()=>setShowAddRequest(true)}>+ 기업 추가 요청</button>}
       </div>
 
