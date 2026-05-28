@@ -164,116 +164,107 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         )}
       </div>
 
-      {activeTab === 'overview' && (
-        <div>
-          <div className="full-width-section" style={{marginBottom:20}}>
-            <div className="section-title">기업 기본 정보</div>
-            <table className="history-table">
-              <tbody>
-                <tr>
-                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)',width:'15%'}}>설립일</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.founded_date ? fmtDate(company.founded_date) : '—'}</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)',width:'15%'}}>소재지</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.location || '—'}</td>
-                </tr>
-                <tr>
-                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>대표이사</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.ceo || '—'}</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>임직원 수</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.employee_count || '—'}명</td>
-                </tr>
-                <tr>
-                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>업종</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.industry || '—'}</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>상장여부</td>
-                  <td style={{textAlign:'left',fontFamily:'inherit'}}>{getListingBadge(company.listing_status) || '—'}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="detail-grid">
-            <div className="detail-section">
-              <div className="section-title">최신 재무실적</div>
-              {latestF ? <>
-                <div className="info-row"><span className="info-label">기준일</span><span className="info-value">{fmtDate(latestF.fiscal_date)}</span></div>
-                <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmt(latestF.revenue)}</span></div>
-                <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(latestF.operating_profit)}</span></div>
-                <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmt(latestF.total_assets)}</span></div>
-                <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmt(latestF.net_assets)}</span></div>
-                {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value" style={{fontSize:12,maxWidth:'60%',textAlign:'right'}}>{latestF.memo}</span></div>}
-              </> : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
+      {activeTab === 'overview' && (() => {
+        const ehSorted  = [...employeeHistory].sort((a,b) => new Date(a.as_of_date) - new Date(b.as_of_date));
+        const maxEmpCount = Math.max(...ehSorted.map(e => e.employee_count), 1);
+        return (
+          <div>
+            {/* 기업 기본 정보 */}
+            <div className="full-width-section" style={{marginBottom:20}}>
+              <div className="section-title">기업 기본 정보</div>
+              <table className="history-table">
+                <tbody>
+                  <tr>
+                    <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)',width:'15%'}}>설립일</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.founded_date ? fmtDate(company.founded_date) : '—'}</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)',width:'15%'}}>소재지</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.location || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>대표이사</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.ceo || '—'}</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>임직원 수</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.employee_count || '—'}명</td>
+                  </tr>
+                  <tr>
+                    <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>업종</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit'}}>{company.industry || '—'}</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text3)'}}>상장여부</td>
+                    <td style={{textAlign:'left',fontFamily:'inherit'}}>{getListingBadge(company.listing_status)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div className="detail-section">
-              <div className="section-title">기업가치</div>
-              {latestV ? (() => {
-                const vDate = new Date(latestV.valuation_date);
-                const nearestF = financials.reduce((best, f) => {
-                  if (!f.operating_profit || f.operating_profit <= 0) return best;
-                  const fDate = new Date(f.fiscal_date);
-                  if (fDate > vDate) return best;
-                  const diff = vDate - fDate;
-                  const bestDiff = best ? vDate - new Date(best.fiscal_date) : Infinity;
-                  return diff < bestDiff ? f : best;
-                }, null);
-                const calcPE = nearestF && latestV.valuation && nearestF.operating_profit > 0
-                  ? (Number(latestV.valuation) / Number(nearestF.operating_profit)).toFixed(1)
-                  : null;
-                return <>
-                  <div className="info-row"><span className="info-label">기준일</span><span className="info-value">{fmtDate(latestV.valuation_date)}</span></div>
-                  <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono">{fmt(latestV.valuation)}</span></div>
-                  <div className="info-row">
-                    <span className="info-label">P/E 멀티플</span>
-                    <span className="info-value mono">
-                      {calcPE ? calcPE + 'x' : <span style={{color:'var(--text3)'}}>N/A</span>}
-                    </span>
-                  </div>
-                  {calcPE && nearestF && <div className="info-row"><span className="info-label" style={{fontSize:11}}>기준 실적</span><span className="info-value" style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(nearestF.fiscal_date)} OP {fmt(nearestF.operating_profit)}</span></div>}
-                </>;
-              })() : <div style={{color:'var(--text3)',fontSize:13}}>기업가치 데이터가 없습니다</div>}
-        {/* ── 임직원 수 추이 ── */}
-        {(() => {
-          const ehSorted = [...employeeHistory].sort((a,b) => new Date(a.as_of_date) - new Date(b.as_of_date));
-          const counts   = ehSorted.map(e => e.employee_count);
-          const maxCount = Math.max(...counts, 1);
 
-          return (
+            {/* 최신 재무 / 기업가치 */}
+            <div className="detail-grid">
+              <div className="detail-section">
+                <div className="section-title">최신 재무실적</div>
+                {latestF ? (
+                  <>
+                    <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestF.fiscal_date)}</span></div>
+                    <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmt(latestF.revenue)}</span></div>
+                    <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(latestF.operating_profit)}</span></div>
+                    <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmt(latestF.total_assets)}</span></div>
+                    <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmt(latestF.net_assets)}</span></div>
+                    {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value">{latestF.memo}</span></div>}
+                  </>
+                ) : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
+              </div>
+              <div className="detail-section">
+                <div className="section-title">기업가치</div>
+                {latestV ? (() => {
+                  const vDate   = new Date(latestV.valuation_date);
+                  const nearestF = financials.reduce((best, f) => {
+                    if (!f.operating_profit || f.operating_profit <= 0) return best;
+                    const fDate = new Date(f.fiscal_date);
+                    if (fDate > vDate) return best;
+                    const diff = vDate - fDate;
+                    const bestDiff = best ? vDate - new Date(best.fiscal_date) : Infinity;
+                    return diff < bestDiff ? f : best;
+                  }, null);
+                  const calcPE = nearestF && latestV.valuation && nearestF.operating_profit > 0
+                    ? (Number(latestV.valuation) / Number(nearestF.operating_profit)).toFixed(1) : null;
+                  return (
+                    <>
+                      <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestV.valuation_date)}</span></div>
+                      <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{fmt(latestV.valuation)}</span></div>
+                      <div className="info-row">
+                        <span className="info-label">P/E 멀티플</span>
+                        <span className="info-value mono">
+                          {calcPE ? calcPE + 'x' : <span style={{color:'var(--text3)'}}>N/A</span>}
+                        </span>
+                      </div>
+                      {calcPE && nearestF && <div className="info-row"><span className="info-label" style={{fontSize:11}}>기준 실적</span><span className="info-value" style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(nearestF.fiscal_date)} OP {fmt(nearestF.operating_profit)}</span></div>}
+                    </>
+                  );
+                })() : <div style={{color:'var(--text3)',fontSize:13}}>기업가치 데이터가 없습니다</div>}
+              </div>
+            </div>
+
+            {/* 임직원 수 추이 */}
             <div className="full-width-section" style={{marginTop:20}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                 <div className="section-title" style={{marginBottom:0}}>임직원 수 추이</div>
                 {isAdmin && (
-                  <button
-                    className="btn btn-secondary"
-                    style={{fontSize:12,padding:'5px 12px'}}
-                    onClick={() => openModal('employeeHistory')}
-                  >+ 추가</button>
+                  <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={() => openModal('employeeHistory')}>+ 추가</button>
                 )}
               </div>
-
               {ehSorted.length === 0 ? (
                 <div style={{color:'var(--text3)',fontSize:13}}>임직원 수 이력이 없습니다</div>
               ) : (
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
                   <div>
-                    <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,paddingBottom:20,position:'relative'}}>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,paddingBottom:20}}>
                       {ehSorted.map((e, i) => {
-                        const barH = Math.max(4, Math.round((e.employee_count / maxCount) * 80));
+                        const barH = Math.max(4, Math.round((e.employee_count / maxEmpCount) * 80));
                         const prev = ehSorted[i - 1];
                         const chg  = prev ? ((e.employee_count - prev.employee_count) / prev.employee_count * 100).toFixed(1) : null;
                         return (
                           <div key={e.id} style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1,gap:4}}>
-                            {chg !== null && (
-                              <div style={{fontSize:9,color:Number(chg)>=0?'var(--green)':'var(--red)',whiteSpace:'nowrap'}}>
-                                {Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%
-                              </div>
-                            )}
-                            <div
-                              title={e.employee_count + '명'}
-                              style={{width:'100%',maxWidth:32,background:'var(--accent)',borderRadius:'3px 3px 0 0',height:barH}}
-                            />
-                            <div style={{fontSize:9,color:'var(--text3)',textAlign:'center'}}>
-                              {new Date(e.as_of_date).getFullYear()}
-                            </div>
+                            {chg !== null && <div style={{fontSize:9,color:Number(chg)>=0?'var(--green)':'var(--red)',whiteSpace:'nowrap'}}>{Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%</div>}
+                            <div title={e.employee_count+'명'} style={{width:'100%',maxWidth:32,background:'var(--accent)',borderRadius:'3px 3px 0 0',height:barH}}/>
+                            <div style={{fontSize:9,color:'var(--text3)',textAlign:'center'}}>{new Date(e.as_of_date).getFullYear()}</div>
                           </div>
                         );
                       })}
@@ -283,25 +274,19 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                     </div>
                   </div>
                   <table className="history-table" style={{fontSize:12}}>
-                    <thead>
-                      <tr>
-                        <th style={{textAlign:'left',fontSize:10}}>기준일</th>
-                        <th style={{fontSize:10}}>임직원 수</th>
-                        <th style={{fontSize:10,textAlign:'left'}}>출처</th>
-                        {isAdmin && <th style={{fontSize:10}}></th>}
-                      </tr>
-                    </thead>
+                    <thead><tr>
+                      <th style={{textAlign:'left',fontSize:10}}>기준일</th>
+                      <th style={{fontSize:10}}>임직원 수</th>
+                      <th style={{fontSize:10,textAlign:'left'}}>출처</th>
+                      {isAdmin && <th style={{fontSize:10}}></th>}
+                    </tr></thead>
                     <tbody>
                       {[...ehSorted].reverse().map(e => (
                         <tr key={e.id}>
                           <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>{fmtDate(e.as_of_date)}</td>
                           <td style={{fontSize:12,fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>{e.employee_count?.toLocaleString()}명</td>
                           <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>{e.source||'—'}</td>
-                          {isAdmin && (
-                            <td style={{textAlign:'right'}}>
-                              <button className="row-edit-btn" onClick={() => openModal('employeeHistory', e)}>✎</button>
-                            </td>
-                          )}
+                          {isAdmin && <td style={{textAlign:'right'}}><button className="row-edit-btn" onClick={() => openModal('employeeHistory', e)}>✎</button></td>}
                         </tr>
                       ))}
                     </tbody>
@@ -309,10 +294,9 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 </div>
               )}
             </div>
-          );
-        })()}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {activeTab === 'financials' && (() => {
         // 연간 / 분기 분리
