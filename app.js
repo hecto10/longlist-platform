@@ -4,8 +4,16 @@ function App() {
   const [selected,       setSelected]       = useState(null);
   const [session,        setSession]        = useState(undefined);
   const [profile,        setProfile]        = useState(null);
-  const [view, setView] = useState(null); // null = 초기화 전
+  const [view,           setView]           = useState(null);
   const [prefillRequest, setPrefillRequest] = useState(null);
+  const [uploadCompanies, setUploadCompanies] = useState([]);
+
+  // 업로드 화면 진입 시 기업 목록 로드
+  useEffect(() => {
+    if (view === 'upload') {
+      companyService.fetchAll().then(setUploadCompanies).catch(() => {});
+    }
+  }, [view]);
 
   useEffect(() => {
     authService.getSession().then(s => {
@@ -144,6 +152,8 @@ function App() {
                 onClick={() => { setView('dashboard'); setSelected(null); }}>대시보드</button>
               <button className={`nav-btn ${view === 'list' ? 'active' : ''}`}
                 onClick={() => { setView('list'); setSelected(null); }}>기업 목록</button>
+              <button className={`nav-btn ${view === 'upload' ? 'active' : ''}`}
+                onClick={() => { setView('upload'); setSelected(null); }}>업로드</button>
               <button className={`nav-btn ${view === 'requests' ? 'active' : ''}`}
                 onClick={() => { setView('requests'); setSelected(null); }}>요청 관리</button>
               <button className={`nav-btn ${view === 'users' ? 'active' : ''}`}
@@ -201,6 +211,11 @@ function App() {
       <main className="main">
         {view === 'dashboard' && isAdmin ? (
           <AdminDashboard onNavigate={(v) => { setView(v); setSelected(null); }} />
+        ) : view === 'upload' && isAdmin ? (
+          <ExcelUploadV2
+            companies={uploadCompanies}
+            onRefresh={() => companyService.fetchAll().then(setUploadCompanies).catch(() => {})}
+          />
         ) : view === 'users' && isAdmin ? (
           <UserManagementView onBack={() => setView('list')} currentUserId={session.user.id} />
         ) : view === 'requests' && isAdmin ? (
