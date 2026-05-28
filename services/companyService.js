@@ -355,6 +355,15 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 임직원 이력 삭제
+  async deleteEmployeeHistory(id) {
+    const { error } = await supabase
+      .from('employee_history')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
