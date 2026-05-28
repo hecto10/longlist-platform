@@ -286,7 +286,21 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           <td style={{textAlign:'left',fontFamily:'MaruBuri,sans-serif',fontSize:11}}>{fmtDate(e.as_of_date)}</td>
                           <td style={{fontSize:12,fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>{e.employee_count?.toLocaleString()}명</td>
                           <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>{e.source||'—'}</td>
-                          {isAdmin && <td style={{textAlign:'right'}}><button className="row-edit-btn" onClick={() => openModal('employeeHistory', e)}>✎</button></td>}
+                          {isAdmin && (
+                            <td style={{textAlign:'right'}}>
+                              <button className="row-edit-btn" onClick={() => openModal('employeeHistory', e)}>✎</button>
+                              <button className="row-delete-btn" style={{marginLeft:4}} onClick={async () => {
+                                if (!window.confirm('해당 임직원 수 이력을 삭제하시겠습니까?')) return;
+                                try {
+                                  await companyService.deleteEmployeeHistory(e.id);
+                                  load();
+                                  showToast('삭제됐어요');
+                                } catch(err) {
+                                  alert('삭제 실패: ' + err.message);
+                                }
+                              }}>🗑</button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
