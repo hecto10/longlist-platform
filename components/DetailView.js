@@ -255,21 +255,21 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
               ) : (
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
                   <div>
-                    <div style={{display:'flex',alignItems:'flex-end',gap:6,height:100,paddingTop:24,paddingBottom:20}}>
+                    <div style={{display:'flex',alignItems:'flex-end',gap:6,minHeight:140,paddingTop:40,paddingBottom:20,marginTop:8}}>
                       {ehSorted.map((e, i) => {
                         const barH = Math.max(4, Math.round((e.employee_count / maxEmpCount) * 80));
                         const prev = ehSorted[i - 1];
                         const chg  = prev ? ((e.employee_count - prev.employee_count) / prev.employee_count * 100).toFixed(1) : null;
                         return (
                           <div key={e.id} style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1,gap:4}}>
-                            {chg !== null && <div style={{fontSize:9,color:Number(chg)>=0?'var(--green)':'var(--red)',whiteSpace:'nowrap',marginBottom:6}}>{Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%</div>}
+                            {chg !== null && <div style={{fontSize:9,color:Number(chg)>=0?'var(--green)':'var(--red)',whiteSpace:'nowrap',marginBottom:8}}>{Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%</div>}
                             <div title={e.employee_count+'명'} style={{width:'100%',maxWidth:32,background:'var(--accent)',borderRadius:'3px 3px 0 0',height:barH}}/>
                             <div style={{fontSize:9,color:'var(--text3)',textAlign:'center'}}>{new Date(e.as_of_date).getFullYear()}</div>
                           </div>
                         );
                       })}
                     </div>
-                    <div style={{fontSize:11,color:'var(--text3)',textAlign:'center',marginTop:2}}>
+                    <div style={{fontSize:11,color:'var(--text3)',textAlign:'center',marginTop:12}}>
                       최신: <strong style={{color:'var(--text)'}}>{ehSorted[ehSorted.length-1]?.employee_count?.toLocaleString()}명</strong>
                     </div>
                   </div>
