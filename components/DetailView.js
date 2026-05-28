@@ -225,15 +225,112 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
       )}
 
       {activeTab === 'financials' && (() => {
-        // 연간 / 분기 분리 (period_type 없으면 quarter로 fallback)
-        const isAnnual = f => f.period_type === '연간' || (!f.period_type && !!f.quarter && !['1Q','2Q','3Q'].some(q => (f.quarter||'').includes(q)));
-        const annualF  = financials.filter(isAnnual);
-        const quarterF = financials.filter(f => ['1Q','2Q','3Q'].includes(f.period_type) || (!f.period_type && ['1Q','2Q','3Q'].some(q => (f.quarter||'').includes(q))));
-        const sorted   = [...annualF].reverse();
-        const revenues = sorted.map(f => Number(f.revenue)||0);
-        const ops      = sorted.map(f => Number(f.operating_profit)||0);
+        // 연간 / 분기 분리
+        const isAnnual  = f => f.period_type === '연간' || (!f.period_type && !!f.quarter && !['1Q','2Q','3Q'].some(q => (f.quarter||'').includes(q)));
+        const isQuarter = f => ['1Q','2Q','3Q'].includes(f.period_type) || (!f.period_type && ['1Q','2Q','3Q'].some(q => (f.quarter||'').includes(q)));
+        const annualF   = financials.filter(isAnnual);
+        const quarterF  = financials.filter(isQuarter);
+        // 분기: 최신순 정렬
+        const quarterSorted = [...quarterF].sort((a,b) => new Date(b.fiscal_date) - new Date(a.fiscal_date));
+        // 연간: 오래된→최신 (차트용)
+        const annualSorted  = [...annualF].reverse();
+        const revenues = annualSorted.map(f => Number(f.revenue)||0);
+        const ops      = annualSorted.map(f => Number(f.operating_profit)||0);
+
+        // 전년동기 대비 계산: 같은 period_type 중 1년 전 row 찾기
+        function findYoY(f) {
+          if (!f.fiscal_date || !f.period_type) return null;
+          const thisDate = new Date(f.fiscal_date);
+          const prevYear = thisDate.getFullYear() - 1;
+          return quarterF.find(q =>
+            q.period_type === f.period_type &&
+            q.id !== f.id &&
+            new Date(q.fiscal_date).getFullYear() === prevYear
+          ) || null;
+        }
+
         return (
           <div style={{display:'flex',flexDirection:'column',gap:20}}>
+
+            {/* ── 최근 실적 업데이트 (분기) ── 최상단 */}
+            <div className="full-width-section">
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                <div className="section-title" style={{marginBottom:0}}>최근 실적 업데이트</div>
+                <span style={{fontSize:11,color:'var(--text3)'}}>1Q · 2Q · 3Q 분기 데이터 · 최신순</span>
+              </div>
+              {quarterSorted.length > 0 ? (
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {quarterSorted.map(f => {
+                    const label   = f.period_type || f.quarter || '';
+                    const year    = f.fiscal_date ? new Date(f.fiscal_date).getFullYear() : '';
+                    const opMargin = f.revenue && f.revenue != 0
+                      ? ((Number(f.operating_profit)||0) / Number(f.revenue) * 100).toFixed(1) : null;
+                    const yoy = findYoY(f);
+                    const revYoY = yoy?.revenue ? calcChange(f.revenue, yoy.revenue) : null;
+                    const opYoY  = yoy?.operating_profit != null && yoy.operating_profit !== 0
+                      ? calcChange(f.operating_profit, yoy.operating_profit) : null;
+                    return (
+                      <div key={f.id} style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 16px',background:'var(--bg3)',borderRadius:8,border:'1px solid var(--border)'}}>
+                        {/* 기간 레이블 */}
+                        <div style={{minWidth:68,flexShrink:0}}>
+                          <div style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{year} {label}</div>
+                          <div style={{fontSize:10,color:'var(--text3)',fontFamily:'MaruBuri,sans-serif',marginTop:2}}>{fmtDate(f.fiscal_date)}</div>
+                        </div>
+                        {/* 수치 */}
+                        <div style={{flex:1,display:'flex',gap:20,flexWrap:'wrap',alignItems:'flex-start'}}>
+                          {f.revenue != null && (
+                            <div>
+                              <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>매출</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif'}}>{fmt(f.revenue)}</div>
+                              {revYoY !== null && (
+                                <div style={{fontSize:10,color:Number(revYoY)>=0?'var(--green)':'var(--red)',marginTop:2}}>
+                                  {Number(revYoY)>=0?'▲':'▼'}{Math.abs(revYoY)}% <span style={{color:'var(--text3)'}}>전년동기비</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {f.operating_profit != null && (
+                            <div>
+                              <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>영업이익</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif',color:f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(f.operating_profit)}</div>
+                              {opYoY !== null && (
+                                <div style={{fontSize:10,color:Number(opYoY)>=0?'var(--green)':'var(--red)',marginTop:2}}>
+                                  {Number(opYoY)>=0?'▲':'▼'}{Math.abs(opYoY)}% <span style={{color:'var(--text3)'}}>전년동기비</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {opMargin !== null && (
+                            <div>
+                              <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>영업이익률</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif',color:Number(opMargin)<0?'var(--red)':'var(--text)'}}>{opMargin}%</div>
+                            </div>
+                          )}
+                          {yoy && (
+                            <div style={{alignSelf:'center'}}>
+                              <div style={{fontSize:10,color:'var(--text3)',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:4,padding:'2px 7px'}}>
+                                전년동기: {new Date(yoy.fiscal_date).getFullYear()} {yoy.period_type}
+                              </div>
+                            </div>
+                          )}
+                          {f.memo && <div style={{fontSize:11,color:'var(--text3)',alignSelf:'center',fontStyle:'italic'}}>"{f.memo}"</div>}
+                        </div>
+                        {/* 수정/삭제 */}
+                        {isAdmin && (
+                          <div style={{display:'flex',gap:4,flexShrink:0}}>
+                            <button className="row-edit-btn" onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
+                            <button className="row-delete-btn" onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{color:'var(--text3)',fontSize:13,padding:'12px 0'}}>분기 실적 데이터가 없습니다</div>
+              )}
+            </div>
+
             {/* ── 연간 실적 추이 ── */}
             <div className="full-width-section">
               <div className="section-title">연간 실적 추이</div>
@@ -251,7 +348,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       <tbody>{annualF.map((f,i) => {
                         const prev = annualF[i+1];
                         const revChg = prev?.revenue ? calcChange(f.revenue, prev.revenue) : null;
-                        const opChg = prev?.operating_profit && prev.operating_profit !== 0 ? calcChange(f.operating_profit, prev.operating_profit) : null;
+                        const opChg  = prev?.operating_profit && prev.operating_profit !== 0 ? calcChange(f.operating_profit, prev.operating_profit) : null;
                         const opMargin = f.revenue && f.revenue !== 0 ? ((Number(f.operating_profit)||0) / Number(f.revenue) * 100).toFixed(1) : null;
                         return (
                           <tr key={f.id}>
@@ -283,7 +380,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       const opNegMax = Math.abs(Math.min(...ops.filter(v=>v<0), 0));
                       const sharedPosMax = Math.max(Math.max(...revenues,1), opPosMax);
                       const s0 = { posMax: sharedPosMax, negMax: opNegMax };
-                      return <MiniChart data={[revenues, ops]} scales={[s0,s0]} color="var(--accent)" color2="rgba(255,106,0,0.38)" xLabels={sorted.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
+                      return <MiniChart data={[revenues, ops]} scales={[s0,s0]} color="var(--accent)" color2="rgba(255,106,0,0.38)" xLabels={annualSorted.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
                     })()}
                     <div style={{display:'flex',gap:14,marginTop:4,fontSize:11,color:'var(--text2)',justifyContent:'center'}}>
                       <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/> 매출</span>
@@ -293,6 +390,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 </div>
               ) : <div style={{color:'var(--text3)',fontSize:13}}>연간 실적 데이터가 없습니다</div>}
             </div>
+
             {/* ── 재무상태 (연간) ── */}
             {annualF.length > 0 && (
               <div className="full-width-section">
@@ -323,11 +421,11 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>총자산 / 순자산 추이</div>
                     {(() => {
-                      const tas = sorted.map(f=>Number(f.total_assets)||0);
-                      const nas = sorted.map(f=>Number(f.net_assets)||0);
+                      const tas = annualSorted.map(f=>Number(f.total_assets)||0);
+                      const nas = annualSorted.map(f=>Number(f.net_assets)||0);
                       const posMax = Math.max(...tas,...nas.filter(v=>v>0),1);
                       const negMax = Math.abs(Math.min(...nas.filter(v=>v<0),0));
-                      return <MiniChart data={[tas,nas]} scales={[{posMax,negMax},{posMax,negMax}]} color="var(--teal)" color2="rgba(13,148,136,0.35)" xLabels={sorted.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
+                      return <MiniChart data={[tas,nas]} scales={[{posMax,negMax},{posMax,negMax}]} color="var(--teal)" color2="rgba(13,148,136,0.35)" xLabels={annualSorted.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
                     })()}
                     <div style={{display:'flex',gap:14,marginTop:4,fontSize:11,color:'var(--text2)',justifyContent:'center'}}>
                       <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'var(--teal)',display:'inline-block'}}/> 총자산</span>
@@ -337,45 +435,12 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 </div>
               </div>
             )}
-            {/* ── 최근 실적 업데이트 (분기) ── */}
-            <div className="full-width-section">
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-                <div className="section-title" style={{marginBottom:0}}>최근 실적 업데이트</div>
-                <span style={{fontSize:11,color:'var(--text3)'}}>1Q · 2Q · 3Q 분기 데이터</span>
-              </div>
-              {quarterF.length > 0 ? (
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  {quarterF.map(f => {
-                    const label = f.period_type || f.quarter || '';
-                    const year  = f.fiscal_date ? new Date(f.fiscal_date).getFullYear() : '';
-                    const opMargin = f.revenue && f.revenue != 0 ? ((Number(f.operating_profit)||0) / Number(f.revenue) * 100).toFixed(1) : null;
-                    return (
-                      <div key={f.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',background:'var(--bg3)',borderRadius:8,border:'1px solid var(--border)'}}>
-                        <div style={{minWidth:60}}>
-                          <div style={{fontSize:12,fontWeight:600,color:'var(--accent)'}}>{year} {label}</div>
-                          <div style={{fontSize:10,color:'var(--text3)',fontFamily:'MaruBuri,sans-serif'}}>{fmtDate(f.fiscal_date)}</div>
-                        </div>
-                        <div style={{flex:1,display:'flex',gap:16,flexWrap:'wrap'}}>
-                          {f.revenue != null && <div><div style={{fontSize:10,color:'var(--text3)'}}>매출</div><div style={{fontSize:13,fontWeight:500,fontFamily:'MaruBuri,sans-serif'}}>{fmt(f.revenue)}</div></div>}
-                          {f.operating_profit != null && <div><div style={{fontSize:10,color:'var(--text3)'}}>영업이익</div><div style={{fontSize:13,fontWeight:500,fontFamily:'MaruBuri,sans-serif',color:f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(f.operating_profit)}</div></div>}
-                          {opMargin !== null && <div><div style={{fontSize:10,color:'var(--text3)'}}>영업이익률</div><div style={{fontSize:13,fontWeight:500,fontFamily:'MaruBuri,sans-serif',color:Number(opMargin)<0?'var(--red)':'var(--text)'}}>{opMargin}%</div></div>}
-                          {f.memo && <div style={{fontSize:11,color:'var(--text3)',alignSelf:'center',fontStyle:'italic'}}>"{f.memo}"</div>}
-                        </div>
-                        {isAdmin && <div style={{display:'flex',gap:4}}>
-                          <button className="row-edit-btn" onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
-                          <button className="row-delete-btn" onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
-                        </div>}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : <div style={{color:'var(--text3)',fontSize:13}}>분기 실적 데이터가 없습니다</div>}
-            </div>
+
           </div>
         );
       })()}
 
-      {activeTab === 'valuations' && (
+            {activeTab === 'valuations' && (
         <div className="full-width-section">
           <div className="section-title">기업가치 이력 (누적)</div>
           {valuations.length > 0 ? (() => {
