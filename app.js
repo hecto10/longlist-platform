@@ -4,7 +4,7 @@ function App() {
   const [selected,       setSelected]       = useState(null);
   const [session,        setSession]        = useState(undefined);
   const [profile,        setProfile]        = useState(null);
-  const [view,           setView]           = useState('list'); // 'list' | 'users' | 'requests' | 'myRequests'
+  const [view, setView] = useState(null); // null = 초기화 전
   const [prefillRequest, setPrefillRequest] = useState(null);
 
   useEffect(() => {
@@ -31,11 +31,13 @@ function App() {
     try {
       const p = await authService.getProfile(userId);
       setProfile(p);
+      // 초기 view 설정: admin → dashboard, user → list
+      if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list');
     } catch(e) {
       setTimeout(() => {
         authService.getProfile(userId)
-          .then(setProfile)
-          .catch(() => {});
+          .then(p => { setProfile(p); if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list'); })
+          .catch(() => { if (view === null) setView('list'); });
       }, 1500);
     }
   }
@@ -117,6 +119,15 @@ function App() {
     );
   }
 
+  // 로그인은 됐지만 profile/view 아직 초기화 중
+  if (session && view === null) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
   const isAdmin  = profile?.role === 'admin';
   const userName = profile?.name || session.user.email;
 
@@ -129,6 +140,8 @@ function App() {
           </div>
           {isAdmin && (
             <nav style={{ display: 'flex', gap: 2 }}>
+              <button className={`nav-btn ${view === 'dashboard' ? 'active' : ''}`}
+                onClick={() => { setView('dashboard'); setSelected(null); }}>대시보드</button>
               <button className={`nav-btn ${view === 'list' ? 'active' : ''}`}
                 onClick={() => { setView('list'); setSelected(null); }}>기업 목록</button>
               <button className={`nav-btn ${view === 'requests' ? 'active' : ''}`}
@@ -168,7 +181,9 @@ function App() {
       </header>
 
       <main className="main">
-        {view === 'users' && isAdmin ? (
+        {view === 'dashboard' && isAdmin ? (
+          <AdminDashboard onNavigate={(v) => { setView(v); setSelected(null); }} />
+        ) : view === 'users' && isAdmin ? (
           <UserManagementView onBack={() => setView('list')} currentUserId={session.user.id} />
         ) : view === 'requests' && isAdmin ? (
           <RequestManagementView session={session} onNavigate={handleNavigateFromRequest} />
