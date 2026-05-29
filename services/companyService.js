@@ -365,6 +365,70 @@ const companyService = {
     if (error) throw error;
   },
 
+  // ── 주주 현황 ──────────────────────────────────────────
+
+  async fetchShareholders(companyId) {
+    const { data, error } = await supabase
+      .from('shareholders')
+      .select('*')
+      .eq('company_id', Number(companyId))
+      .is('deleted_at', null)
+      .order('as_of_date', { ascending: false })
+      .order('total_ratio',  { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async insertShareholder(payload) {
+    const { error } = await supabase.from('shareholders').insert(payload);
+    if (error) throw error;
+  },
+
+  async updateShareholder(id, payload) {
+    const { error } = await supabase.from('shareholders').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteShareholder(id) {
+    const { error } = await supabase
+      .from('shareholders')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  // ── 이사회/경영진 ───────────────────────────────────────
+
+  async fetchBoardMembers(companyId) {
+    const { data, error } = await supabase
+      .from('board_members')
+      .select('*')
+      .eq('company_id', Number(companyId))
+      .is('deleted_at', null)
+      .order('as_of_date', { ascending: false })
+      .order('id',         { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async insertBoardMember(payload) {
+    const { error } = await supabase.from('board_members').insert(payload);
+    if (error) throw error;
+  },
+
+  async updateBoardMember(id, payload) {
+    const { error } = await supabase.from('board_members').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteBoardMember(id) {
+    const { error } = await supabase
+      .from('board_members')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
