@@ -211,14 +211,22 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
       {activeTab === 'overview' && (() => {
         const ehSorted    = [...employeeHistory].sort((a,b) => new Date(a.as_of_date) - new Date(b.as_of_date));
         const maxEmpCount = Math.max(...ehSorted.map(e => e.employee_count), 1);
-        const shDates     = [...new Set(shareholders.map(s => s.as_of_date))].sort((a,b) => b.localeCompare(a));
-        const bmDates     = [...new Set(boardMembers.map(m => m.as_of_date))].sort((a,b) => b.localeCompare(a));
-        const shRows      = shareholders.filter(s => s.as_of_date === shDateSel);
-        const bmRows      = boardMembers.filter(m => m.as_of_date === bmDateSel);
+        const latestVDate = latestV ? new Date(latestV.valuation_date) : null;
+        const nearestF    = latestVDate ? financials.reduce((best, f) => {
+          if (!f.operating_profit || f.operating_profit <= 0) return best;
+          const fDate = new Date(f.fiscal_date);
+          if (fDate > latestVDate) return best;
+          const diff = latestVDate - fDate;
+          const bestDiff = best ? latestVDate - new Date(best.fiscal_date) : Infinity;
+          return diff < bestDiff ? f : best;
+        }, null) : null;
+        const calcPE = nearestF && latestV?.valuation && nearestF.operating_profit > 0
+          ? (Number(latestV.valuation) / Number(nearestF.operating_profit)).toFixed(1) : null;
         return (
           <div>
-            {/* 기업 기본 정보 */}
-            <div className="full-width-section" style={{marginBottom:20}}>
+
+            {/* ── 기업 기본 정보 ── */}
+            <div className="full-width-section" style={{marginBottom:24}}>
               <div className="section-title">기업 기본 정보</div>
               <table className="history-table">
                 <tbody>
@@ -244,8 +252,155 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
               </table>
             </div>
 
-            {/* 최신 재무 / 기업가치 */}
-            <div className="detail-grid">
+            {/* ══ 지배구조 ══ */}
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14,paddingBottom:6,borderBottom:'2px solid var(--border)'}}>
+              지배구조
+            </div>
+
+            {/* 주주 현황 */}
+            <div className="full-width-section" style={{marginBottom:20}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
+                <div className="section-title" style={{marginBottom:0}}>주주 현황</div>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  {shareholderSnaps.length > 0 && (
+                    <select className="form-input" style={{fontSize:11,padding:'4px 8px',width:'auto'}}
+                      value={shDateSel} onChange={e => setShDateSel(e.target.value)}>
+                      {shareholderSnaps.map(s=>(
+                        <option key={s.id} value={s.as_of_date}>{s.as_of_date} 기준</option>
+                      ))}
+                    </select>
+                  )}
+                  {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('shareholderBulk')}>+ 추가</button>}
+                  {isAdmin && shDateSel && (
+                    <button style={{fontSize:11,padding:'5px 10px',borderRadius:6,border:'1px solid rgba(220,38,38,0.3)',background:'rgba(220,38,38,0.06)',color:'var(--red)',cursor:'pointer',fontFamily:'inherit'}}
+                      onClick={async()=>{
+                        const snap = shareholderSnaps.find(s=>s.as_of_date===shDateSel);
+                        if (!snap) return;
+                        if (!window.confirm(`${shDateSel} 기준 주주 현황 전체를 삭제하시겠습니까?`)) return;
+                        try { await companyService.deleteShareholderSnapshot(snap.id); load(); showToast('삭제됐어요'); }
+                        catch(e) { alert('삭제 실패: '+e.message); }
+                      }}>🗑 기준일 삭제</button>
+                  )}
+                </div>
+              </div>
+              {shareholders.length === 0 ? (
+                <div style={{color:'var(--text3)',fontSize:13}}>주주 현황 데이터가 없습니다</div>
+              ) : (
+                <div style={{overflowX:'auto'}}>
+                  <table className="history-table" style={{fontSize:11,minWidth:700}}>
+                    <thead>
+                      <tr>
+                        <th style={{textAlign:'left',fontSize:10}} rowSpan={2}>주주명</th>
+                        <th style={{fontSize:10,textAlign:'center'}} rowSpan={2}>구분</th>
+                        <th style={{fontSize:10,textAlign:'center'}} colSpan={3}>소유주식수 (주)</th>
+                        <th style={{fontSize:10,textAlign:'center'}} colSpan={3}>지분율 (%)</th>
+                        <th style={{fontSize:10,textAlign:'center'}} rowSpan={2}>최대주주와의 관계</th>
+                        {isAdmin && <th rowSpan={2}></th>}
+                      </tr>
+                      <tr>
+                        {['보통주','우선주','합계','보통주','우선주','합계'].map((h,i)=>(
+                          <th key={i} style={{fontSize:10,textAlign:'center'}}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shareholders.filter(s=>s.as_of_date===shDateSel).map(s => (
+                        <tr key={s.id}>
+                          <td style={{textAlign:'left',fontWeight:500}}>{s.shareholder_name}</td>
+                          <td style={{textAlign:'center',fontSize:10,color:'var(--text3)'}}>{s.shareholder_type||'—'}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.common_shares?.toLocaleString()??'—'}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.preferred_shares?.toLocaleString()??'—'}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>{s.total_shares?.toLocaleString()??'—'}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.common_ratio!=null?s.common_ratio+'%':'—'}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.preferred_ratio!=null?s.preferred_ratio+'%':'—'}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif',fontWeight:500,color:'var(--accent)'}}>{s.total_ratio!=null?s.total_ratio+'%':'—'}</td>
+                          <td style={{textAlign:'center',fontSize:11,color:'var(--text3)'}}>{s.relation_to_major_shareholder||'—'}</td>
+                          {isAdmin && (
+                            <td style={{textAlign:'right',whiteSpace:'nowrap'}}>
+                              <button className="row-edit-btn" onClick={()=>openModal('shareholder',s)}>✎</button>
+                              <button className="row-delete-btn" style={{marginLeft:4}} onClick={async()=>{
+                                if(!window.confirm('해당 주주 이력을 삭제하시겠습니까?'))return;
+                                try{ await companyService.deleteShareholder(s.id); load(); showToast('삭제됐어요'); }
+                                catch(e){ alert('삭제 실패: '+e.message); }
+                              }}>🗑</button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* 이사회/경영진 현황 */}
+            <div className="full-width-section" style={{marginBottom:28}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
+                <div className="section-title" style={{marginBottom:0}}>이사회/경영진 현황</div>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  {boardMembers.length > 0 && (
+                    <select className="form-input" style={{fontSize:11,padding:'4px 8px',width:'auto'}}
+                      value={bmDateSel} onChange={e => setBmDateSel(e.target.value)}>
+                      {[...new Set(boardMembers.map(m=>m.as_of_date))].sort((a,b)=>b.localeCompare(a)).map(d=>(
+                        <option key={d} value={d}>{d} 기준</option>
+                      ))}
+                    </select>
+                  )}
+                  {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('boardMemberBulk')}>+ 추가</button>}
+                </div>
+              </div>
+              {boardMembers.length === 0 ? (
+                <div style={{color:'var(--text3)',fontSize:13}}>이사회/경영진 데이터가 없습니다</div>
+              ) : (
+                <div style={{overflowX:'auto'}}>
+                  <table className="history-table" style={{fontSize:11,minWidth:620}}>
+                    <thead>
+                      <tr>
+                        {['구분','성명','출생연도','등기여부','직위','담당업무','최대주주관계'].map(h=>(
+                          <th key={h} style={{fontSize:10,textAlign:h==='구분'||h==='성명'?'left':'center'}}>{h}</th>
+                        ))}
+                        {isAdmin && <th></th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {boardMembers.filter(m=>m.as_of_date===bmDateSel).map(m => (
+                        <tr key={m.id}>
+                          <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>{m.member_type}</td>
+                          <td style={{textAlign:'left',fontWeight:500}}>{m.name}</td>
+                          <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{m.birth_year||'—'}</td>
+                          <td style={{textAlign:'center'}}>
+                            <span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:m.registration_status==='등기'?'rgba(22,163,74,0.1)':'var(--bg3)',color:m.registration_status==='등기'?'var(--green)':'var(--text3)'}}>
+                              {m.registration_status||'—'}
+                            </span>
+                          </td>
+                          <td style={{textAlign:'center'}}>{m.position||'—'}</td>
+                          <td style={{textAlign:'center',color:'var(--text2)'}}>{m.responsibility||'—'}</td>
+                          <td style={{textAlign:'center',fontSize:11,color:'var(--text3)'}}>{m.relation_to_major_shareholder||'—'}</td>
+                          {isAdmin && (
+                            <td style={{textAlign:'right',whiteSpace:'nowrap'}}>
+                              <button className="row-edit-btn" onClick={()=>openModal('boardMember',m)}>✎</button>
+                              <button className="row-delete-btn" style={{marginLeft:4}} onClick={async()=>{
+                                if(!window.confirm('해당 경영진 이력을 삭제하시겠습니까?'))return;
+                                try{ await companyService.deleteBoardMember(m.id); load(); showToast('삭제됐어요'); }
+                                catch(e){ alert('삭제 실패: '+e.message); }
+                              }}>🗑</button>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* ══ 재무 현황 ══ */}
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14,paddingBottom:6,borderBottom:'2px solid var(--border)'}}>
+              재무 현황
+            </div>
+
+            {/* 최신 재무실적 + 기업가치 */}
+            <div className="detail-grid" style={{marginBottom:28}}>
               <div className="detail-section">
                 <div className="section-title">최신 재무실적</div>
                 {latestF ? (
@@ -261,37 +416,27 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
               </div>
               <div className="detail-section">
                 <div className="section-title">기업가치</div>
-                {latestV ? (() => {
-                  const vDate   = new Date(latestV.valuation_date);
-                  const nearestF = financials.reduce((best, f) => {
-                    if (!f.operating_profit || f.operating_profit <= 0) return best;
-                    const fDate = new Date(f.fiscal_date);
-                    if (fDate > vDate) return best;
-                    const diff = vDate - fDate;
-                    const bestDiff = best ? vDate - new Date(best.fiscal_date) : Infinity;
-                    return diff < bestDiff ? f : best;
-                  }, null);
-                  const calcPE = nearestF && latestV.valuation && nearestF.operating_profit > 0
-                    ? (Number(latestV.valuation) / Number(nearestF.operating_profit)).toFixed(1) : null;
-                  return (
-                    <>
-                      <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestV.valuation_date)}</span></div>
-                      <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{fmt(latestV.valuation)}</span></div>
-                      <div className="info-row">
-                        <span className="info-label">P/E 멀티플</span>
-                        <span className="info-value mono">
-                          {calcPE ? calcPE + 'x' : <span style={{color:'var(--text3)'}}>N/A</span>}
-                        </span>
-                      </div>
-                      {calcPE && nearestF && <div className="info-row"><span className="info-label" style={{fontSize:11}}>기준 실적</span><span className="info-value" style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(nearestF.fiscal_date)} OP {fmt(nearestF.operating_profit)}</span></div>}
-                    </>
-                  );
-                })() : <div style={{color:'var(--text3)',fontSize:13}}>기업가치 데이터가 없습니다</div>}
+                {latestV ? (
+                  <>
+                    <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestV.valuation_date)}</span></div>
+                    <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{fmt(latestV.valuation)}</span></div>
+                    <div className="info-row">
+                      <span className="info-label">P/E 멀티플</span>
+                      <span className="info-value mono">{calcPE ? calcPE+'x' : <span style={{color:'var(--text3)'}}>N/A</span>}</span>
+                    </div>
+                    {calcPE && nearestF && <div className="info-row"><span className="info-label" style={{fontSize:11}}>기준 실적</span><span className="info-value" style={{fontSize:11,color:'var(--text3)'}}>{fmtDate(nearestF.fiscal_date)} OP {fmt(nearestF.operating_profit)}</span></div>}
+                  </>
+                ) : <div style={{color:'var(--text3)',fontSize:13}}>기업가치 데이터가 없습니다</div>}
               </div>
             </div>
 
+            {/* ══ 조직 현황 ══ */}
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14,paddingBottom:6,borderBottom:'2px solid var(--border)'}}>
+              조직 현황
+            </div>
+
             {/* 임직원 수 추이 */}
-            <div className="full-width-section" style={{marginTop:20}}>
+            <div className="full-width-section">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
                 <div className="section-title" style={{marginBottom:0}}>임직원 수 추이</div>
                 {isAdmin && (
@@ -356,151 +501,11 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 </div>
               )}
             </div>
+
           </div>
         );
       })()}
 
-      {/* ── 주주 현황 ── */}
-      {activeTab === 'overview' && (
-        <div className="full-width-section" style={{marginTop:20}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
-            <div className="section-title" style={{marginBottom:0}}>주주 현황</div>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              {shareholderSnaps.length > 0 && (
-                <select className="form-input" style={{fontSize:11,padding:'4px 8px',width:'auto'}}
-                  value={shDateSel} onChange={e => setShDateSel(e.target.value)}>
-                  {shareholderSnaps.map(s=>(
-                    <option key={s.id} value={s.as_of_date}>{s.as_of_date} 기준</option>
-                  ))}
-                </select>
-              )}
-              {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('shareholderBulk')}>+ 추가</button>}
-              {isAdmin && shDateSel && (
-                <button style={{fontSize:11,padding:'5px 10px',borderRadius:6,border:'1px solid rgba(220,38,38,0.3)',background:'rgba(220,38,38,0.06)',color:'var(--red)',cursor:'pointer',fontFamily:'inherit'}}
-                  onClick={async()=>{
-                    const snap = shareholderSnaps.find(s=>s.as_of_date===shDateSel);
-                    if (!snap) return;
-                    if (!window.confirm(`${shDateSel} 기준 주주 현황 전체를 삭제하시겠습니까?`)) return;
-                    try { await companyService.deleteShareholderSnapshot(snap.id); load(); showToast('삭제됐어요'); }
-                    catch(e) { alert('삭제 실패: '+e.message); }
-                  }}>🗑 기준일 삭제</button>
-              )}
-            </div>
-          </div>
-          {shareholders.length === 0 ? (
-            <div style={{color:'var(--text3)',fontSize:13}}>주주 현황 데이터가 없습니다</div>
-          ) : (
-            <div style={{overflowX:'auto'}}>
-              <table className="history-table" style={{fontSize:11,minWidth:700}}>
-                <thead>
-                  <tr>
-                    <th style={{textAlign:'left',fontSize:10}} rowSpan={2}>주주명</th>
-                    <th style={{fontSize:10,textAlign:'center'}} rowSpan={2}>구분</th>
-                    <th style={{fontSize:10,textAlign:'center'}} colSpan={3}>소유주식수 (주)</th>
-                    <th style={{fontSize:10,textAlign:'center'}} colSpan={3}>지분율 (%)</th>
-                    <th style={{fontSize:10,textAlign:'center'}} rowSpan={2}>최대주주와의 관계</th>
-                    {isAdmin && <th rowSpan={2}></th>}
-                  </tr>
-                  <tr>
-                    {['보통주','우선주','합계','보통주','우선주','합계'].map((h,i)=>(
-                      <th key={i} style={{fontSize:10,textAlign:'center'}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {shareholders.filter(s=>s.as_of_date===shDateSel).map(s => (
-                    <tr key={s.id}>
-                      <td style={{textAlign:'left',fontWeight:500}}>{s.shareholder_name}</td>
-                      <td style={{textAlign:'center',fontSize:10,color:'var(--text3)'}}>{s.shareholder_type||'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.common_shares?.toLocaleString()??'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.preferred_shares?.toLocaleString()??'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif',fontWeight:500}}>{s.total_shares?.toLocaleString()??'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.common_ratio!=null?s.common_ratio+'%':'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{s.preferred_ratio!=null?s.preferred_ratio+'%':'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif',fontWeight:500,color:'var(--accent)'}}>{s.total_ratio!=null?s.total_ratio+'%':'—'}</td>
-                      <td style={{textAlign:'center',fontSize:11,color:'var(--text3)'}}>{s.relation_to_major_shareholder||'—'}</td>
-                      {isAdmin && (
-                        <td style={{textAlign:'right',whiteSpace:'nowrap'}}>
-                          <button className="row-edit-btn" onClick={()=>openModal('shareholder',s)}>✎</button>
-                          <button className="row-delete-btn" style={{marginLeft:4}} onClick={async()=>{
-                            if(!window.confirm('해당 주주 이력을 삭제하시겠습니까?'))return;
-                            try{ await companyService.deleteShareholder(s.id); load(); showToast('삭제됐어요'); }
-                            catch(e){ alert('삭제 실패: '+e.message); }
-                          }}>🗑</button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── 이사회/경영진 현황 ── */}
-      {activeTab === 'overview' && (
-        <div className="full-width-section" style={{marginTop:20}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
-            <div className="section-title" style={{marginBottom:0}}>이사회/경영진 현황</div>
-            <div style={{display:'flex',alignItems:'center',gap:8}}>
-              {boardMembers.length > 0 && (
-                <select className="form-input" style={{fontSize:11,padding:'4px 8px',width:'auto'}}
-                  value={bmDateSel} onChange={e => setBmDateSel(e.target.value)}>
-                  {[...new Set(boardMembers.map(m=>m.as_of_date))].sort((a,b)=>b.localeCompare(a)).map(d=>(
-                    <option key={d} value={d}>{d} 기준</option>
-                  ))}
-                </select>
-              )}
-              {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('boardMemberBulk')}>+ 추가</button>}
-            </div>
-          </div>
-          {boardMembers.length === 0 ? (
-            <div style={{color:'var(--text3)',fontSize:13}}>이사회/경영진 데이터가 없습니다</div>
-          ) : (
-            <div style={{overflowX:'auto'}}>
-              <table className="history-table" style={{fontSize:11,minWidth:680}}>
-                <thead>
-                  <tr>
-                    {['구분','성명','출생연도','등기여부','직위','담당업무','근속연수','최대주주관계'].map(h=>(
-                      <th key={h} style={{fontSize:10,textAlign:h==='구분'||h==='성명'?'left':'center'}}>{h}</th>
-                    ))}
-                    {isAdmin && <th></th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {boardMembers.filter(m=>m.as_of_date===bmDateSel).map(m => (
-                    <tr key={m.id}>
-                      <td style={{textAlign:'left',fontSize:11,color:'var(--text3)'}}>{m.member_type}</td>
-                      <td style={{textAlign:'left',fontWeight:500}}>{m.name}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{m.birth_year||'—'}</td>
-                      <td style={{textAlign:'center'}}>
-                        <span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:m.registration_status==='등기'?'rgba(22,163,74,0.1)':'var(--bg3)',color:m.registration_status==='등기'?'var(--green)':'var(--text3)'}}>
-                          {m.registration_status||'—'}
-                        </span>
-                      </td>
-                      <td style={{textAlign:'center'}}>{m.position||'—'}</td>
-                      <td style={{textAlign:'center',color:'var(--text2)'}}>{m.responsibility||'—'}</td>
-                      <td style={{textAlign:'center',fontFamily:'MaruBuri,sans-serif'}}>{m.tenure_years!=null?m.tenure_years+'년':'—'}</td>
-                      <td style={{textAlign:'center',fontSize:11,color:'var(--text3)'}}>{m.relation_to_major_shareholder||'—'}</td>
-                      {isAdmin && (
-                        <td style={{textAlign:'right',whiteSpace:'nowrap'}}>
-                          <button className="row-edit-btn" onClick={()=>openModal('boardMember',m)}>✎</button>
-                          <button className="row-delete-btn" style={{marginLeft:4}} onClick={async()=>{
-                            if(!window.confirm('해당 경영진 이력을 삭제하시겠습니까?'))return;
-                            try{ await companyService.deleteBoardMember(m.id); load(); showToast('삭제됐어요'); }
-                            catch(e){ alert('삭제 실패: '+e.message); }
-                          }}>🗑</button>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
 
       {activeTab === 'financials' && (() => {
         // 연간 / 분기 분리
