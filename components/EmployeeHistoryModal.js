@@ -31,6 +31,7 @@ function EmployeeHistoryModal({ company, record, onClose, onSave, session }) {
       } else {
         await companyService.insertEmployeeHistory(payload);
       }
+      await companyService.syncLatestEmployeeCount(company.id);
       onSave();
       onClose();
     } catch(e) {

@@ -486,6 +486,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                                 if (!window.confirm('해당 임직원 수 이력을 삭제하시겠습니까?')) return;
                                 try {
                                   await companyService.deleteEmployeeHistory(e.id);
+                                  await companyService.syncLatestEmployeeCount(company.id);
                                   load();
                                   showToast('삭제됐어요');
                                 } catch(err) {
