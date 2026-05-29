@@ -365,36 +365,125 @@ const companyService = {
     if (error) throw error;
   },
 
-  // ── 주주 현황 ──────────────────────────────────────────
+  // ── 주주 현황 (shareholder_snapshot + shareholders) ──────
 
-  async fetchShareholders(companyId) {
+  // snapshot 목록 조회 (기준일 드롭다운용)
+  async fetchShareholderSnapshots(companyId) {
     const { data, error } = await supabase
-      .from('shareholders')
+      .from('shareholder_snapshot')
       .select('*')
       .eq('company_id', Number(companyId))
       .is('deleted_at', null)
-      .order('as_of_date', { ascending: false })
-      .order('total_ratio',  { ascending: false });
+      .order('as_of_date', { ascending: false });
     if (error) throw error;
     return data || [];
   },
 
-  async insertShareholder(payload) {
-    const { error } = await supabase.from('shareholders').insert(payload);
+  // 특정 snapshot의 주주 목록 조회 (snapshot JOIN으로 orphan 방어)
+  async fetchShareholders(companyId) {
+    const { data, error } = await supabase
+      .from('shareholders')
+      .select('*, shareholder_snapshot!inner(id, as_of_date, total_common_shares, total_preferred_shares, deleted_at)')
+      .eq('company_id', Number(companyId))
+      .is('deleted_at', null)
+      .is('shareholder_snapshot.deleted_at', null)
+      .order('as_of_date', { ascending: false })
+      .order('total_ratio', { ascending: false, nullsFirst: false });
     if (error) throw error;
+    return data || [];
   },
 
-  async updateShareholder(id, payload) {
+  // snapshot + 주주 일괄 저장 (bulk insert)
+  async insertSnapshotWithShareholders(snapshotPayload, shareholderRows) {
+    // 1. snapshot insert → id 반환
+    const { data: snap, error: snapErr } = await supabase
+      .from('shareholder_snapshot')
+      .insert(snapshotPayload)
+      .select()
+      .single();
+    if (snapErr) throw snapErr;
+
+    if (!shareholderRows.length) return snap;
+
+    // 2. 지분율 자동 계산 후 shareholders insert
+    const totalCommon    = snap.total_common_shares    || 0;
+    const totalPreferred = snap.total_preferred_shares || 0;
+    const totalAll       = totalCommon + totalPreferred;
+
+    const rows = shareholderRows.map(r => {
+      const cs  = Number(r.common_shares)    || 0;
+      const ps  = Number(r.preferred_shares) || 0;
+      const ts  = cs + ps;
+      const cr  = totalCommon    > 0 ? Math.round(cs / totalCommon    * 10000) / 100 : null;
+      const pr  = totalPreferred > 0 ? Math.round(ps / totalPreferred * 10000) / 100 : null;
+      const tr  = totalAll       > 0 ? Math.round(ts / totalAll       * 10000) / 100 : null;
+      return {
+        snapshot_id:                    snap.id,
+        company_id:                     snap.company_id,
+        as_of_date:                     snap.as_of_date,
+        shareholder_name:               r.shareholder_name.trim(),
+        shareholder_type:               r.shareholder_type               || null,
+        common_shares:                  cs || null,
+        preferred_shares:               ps || null,
+        total_shares:                   ts || null,
+        common_ratio:                   cr,
+        preferred_ratio:                pr,
+        total_ratio:                    tr,
+        relation_to_major_shareholder:  r.relation_to_major_shareholder  || null,
+        note:                           r.note                           || null,
+      };
+    });
+
+    const { error: rowErr } = await supabase.from('shareholders').insert(rows);
+    if (rowErr) throw rowErr;
+    return snap;
+  },
+
+  // 단일 주주 수정
+  async updateShareholder(id, payload, snapshotId) {
+    // 지분율 재계산 (snapshot 조회 후)
+    if (snapshotId) {
+      const { data: snap } = await supabase
+        .from('shareholder_snapshot').select('*').eq('id', snapshotId).single();
+      if (snap) {
+        const cs  = Number(payload.common_shares)    || 0;
+        const ps  = Number(payload.preferred_shares) || 0;
+        const ts  = cs + ps;
+        const tc  = snap.total_common_shares    || 0;
+        const tp  = snap.total_preferred_shares || 0;
+        const ta  = tc + tp;
+        payload.total_shares     = ts || null;
+        payload.common_ratio     = tc > 0 ? Math.round(cs / tc * 10000) / 100 : null;
+        payload.preferred_ratio  = tp > 0 ? Math.round(ps / tp * 10000) / 100 : null;
+        payload.total_ratio      = ta > 0 ? Math.round(ts / ta * 10000) / 100 : null;
+      }
+    }
     const { error } = await supabase.from('shareholders').update(payload).eq('id', id);
     if (error) throw error;
   },
 
+  // 단일 주주 soft delete
   async deleteShareholder(id) {
     const { error } = await supabase
       .from('shareholders')
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
+  },
+
+  // snapshot soft delete (연결 주주 cascade soft delete)
+  async deleteShareholderSnapshot(snapshotId) {
+    const now = new Date().toISOString();
+    const { error: rowErr } = await supabase
+      .from('shareholders')
+      .update({ deleted_at: now })
+      .eq('snapshot_id', snapshotId);
+    if (rowErr) throw rowErr;
+    const { error: snapErr } = await supabase
+      .from('shareholder_snapshot')
+      .update({ deleted_at: now })
+      .eq('id', snapshotId);
+    if (snapErr) throw snapErr;
   },
 
   // ── 이사회/경영진 ───────────────────────────────────────
