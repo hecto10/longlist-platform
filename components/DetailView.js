@@ -6,10 +6,11 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
   const [valuations,       setValuations]       = useState([]);
   const [reports,          setReports]          = useState([]);
   const [employeeHistory,  setEmployeeHistory]  = useState([]);
-  const [shareholders,     setShareholders]     = useState([]);
-  const [boardMembers,     setBoardMembers]     = useState([]);
-  const [shDateSel,        setShDateSel]        = useState('');
-  const [bmDateSel,        setBmDateSel]        = useState('');
+  const [shareholders,       setShareholders]       = useState([]);
+  const [shareholderSnaps,   setShareholderSnaps]   = useState([]);
+  const [boardMembers,       setBoardMembers]       = useState([]);
+  const [shDateSel,          setShDateSel]          = useState('');
+  const [bmDateSel,          setBmDateSel]          = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [modal, setModal] = useState(null);
   const openModal = (type, record = null, requestType = null) => setModal({ type, record, requestType });
@@ -18,13 +19,14 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
   const [allTagsForEdit, setAllTagsForEdit] = useState([]);
 
   const load = useCallback(async () => {
-    const [f, v, r, companies, eh, sh, bm] = await Promise.all([
+    const [f, v, r, companies, eh, sh, snaps, bm] = await Promise.all([
       companyService.fetchFinancialsByCompany(initialCompany.id),
       companyService.fetchValuationsByCompany(initialCompany.id),
       companyService.fetchReportsByCompany(initialCompany.id),
       companyService.fetchAll(),
       companyService.fetchEmployeeHistory(initialCompany.id),
       companyService.fetchShareholders(initialCompany.id),
+      companyService.fetchShareholderSnapshots(initialCompany.id),
       companyService.fetchBoardMembers(initialCompany.id),
     ]);
     setFinancials(f);
@@ -32,10 +34,10 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
     setReports(r);
     setEmployeeHistory(eh);
     setShareholders(sh);
+    setShareholderSnaps(snaps);
     setBoardMembers(bm);
-    // 기준일 초기값: 가장 최신 날짜
-    if (sh.length) setShDateSel(prev => prev || sh[0].as_of_date);
-    if (bm.length) setBmDateSel(prev => prev || bm[0].as_of_date);
+    if (snaps.length) setShDateSel(prev => prev || snaps[0].as_of_date);
+    if (bm.length)    setBmDateSel(prev => prev || bm[0].as_of_date);
     const updated = companies.find(c => c.id === initialCompany.id);
     if (updated) setCompany(updated);
   }, [initialCompany.id]);
@@ -147,12 +149,28 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           onSave={() => { load(); showToast(modal.record ? '주주 정보가 수정됐어요' : '주주가 추가됐어요'); }}
         />
       )}
+      {modal?.type === 'shareholderBulk' && (
+        <ShareholderBulkModal
+          company={company}
+          existingShareholders={shareholders}
+          onClose={closeModal}
+          onSave={() => { load(); showToast('주주 현황이 저장됐어요'); }}
+        />
+      )}
       {modal?.type === 'boardMember' && (
         <BoardMemberModal
           company={company}
           record={modal.record}
           onClose={closeModal}
           onSave={() => { load(); showToast(modal.record ? '경영진 정보가 수정됐어요' : '경영진이 추가됐어요'); }}
+        />
+      )}
+      {modal?.type === 'boardMemberBulk' && (
+        <BoardMemberBulkModal
+          company={company}
+          existingBoardMembers={boardMembers}
+          onClose={closeModal}
+          onSave={() => { load(); showToast('이사회/경영진이 저장됐어요'); }}
         />
       )}
 
@@ -348,15 +366,25 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:8}}>
             <div className="section-title" style={{marginBottom:0}}>주주 현황</div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              {shareholders.length > 0 && (
+              {shareholderSnaps.length > 0 && (
                 <select className="form-input" style={{fontSize:11,padding:'4px 8px',width:'auto'}}
                   value={shDateSel} onChange={e => setShDateSel(e.target.value)}>
-                  {[...new Set(shareholders.map(s=>s.as_of_date))].sort((a,b)=>b.localeCompare(a)).map(d=>(
-                    <option key={d} value={d}>{d} 기준</option>
+                  {shareholderSnaps.map(s=>(
+                    <option key={s.id} value={s.as_of_date}>{s.as_of_date} 기준</option>
                   ))}
                 </select>
               )}
-              {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('shareholder')}>+ 추가</button>}
+              {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('shareholderBulk')}>+ 추가</button>}
+              {isAdmin && shDateSel && (
+                <button style={{fontSize:11,padding:'5px 10px',borderRadius:6,border:'1px solid rgba(220,38,38,0.3)',background:'rgba(220,38,38,0.06)',color:'var(--red)',cursor:'pointer',fontFamily:'inherit'}}
+                  onClick={async()=>{
+                    const snap = shareholderSnaps.find(s=>s.as_of_date===shDateSel);
+                    if (!snap) return;
+                    if (!window.confirm(`${shDateSel} 기준 주주 현황 전체를 삭제하시겠습니까?`)) return;
+                    try { await companyService.deleteShareholderSnapshot(snap.id); load(); showToast('삭제됐어요'); }
+                    catch(e) { alert('삭제 실패: '+e.message); }
+                  }}>🗑 기준일 삭제</button>
+              )}
             </div>
           </div>
           {shareholders.length === 0 ? (
@@ -424,7 +452,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                   ))}
                 </select>
               )}
-              {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('boardMember')}>+ 추가</button>}
+              {isAdmin && <button className="btn btn-secondary" style={{fontSize:12,padding:'5px 12px'}} onClick={()=>openModal('boardMemberBulk')}>+ 추가</button>}
             </div>
           </div>
           {boardMembers.length === 0 ? (
