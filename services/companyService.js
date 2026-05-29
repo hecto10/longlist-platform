@@ -365,6 +365,29 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 임직원 수 동기화: employee_history 최신값 → companies.employee_count
+  async syncLatestEmployeeCount(companyId) {
+    try {
+      const { data } = await supabase
+        .from('employee_history')
+        .select('employee_count')
+        .eq('company_id', Number(companyId))
+        .is('deleted_at', null)
+        .order('as_of_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.employee_count != null) {
+        await supabase
+          .from('companies')
+          .update({ employee_count: data.employee_count })
+          .eq('id', Number(companyId));
+      }
+      // 이력이 없으면 기존값 유지 (업데이트하지 않음)
+    } catch(e) {
+      console.warn('[syncLatestEmployeeCount] 동기화 실패 (메인 기능에 영향 없음):', e.message);
+    }
+  },
+
   // ── 주주 현황 (shareholder_snapshot + shareholders) ──────
 
   // snapshot 목록 조회 (기준일 드롭다운용)
