@@ -153,7 +153,7 @@ function App() {
               <button className={`nav-btn ${view === 'list' ? 'active' : ''}`}
                 onClick={() => { setView('list'); setSelected(null); }}>기업 목록</button>
               <button className={`nav-btn ${view === 'upload' ? 'active' : ''}`}
-                onClick={() => { setView('upload'); setSelected(null); }}>업로드</button>
+                onClick={() => { setView('upload'); setSelected(null); }}>데이터 관리</button>
               <button className={`nav-btn ${view === 'requests' ? 'active' : ''}`}
                 onClick={() => { setView('requests'); setSelected(null); }}>요청 관리</button>
               <button className={`nav-btn ${view === 'users' ? 'active' : ''}`}
@@ -212,7 +212,7 @@ function App() {
         {view === 'dashboard' && isAdmin ? (
           <AdminDashboard onNavigate={(v) => { setView(v); setSelected(null); }} />
         ) : view === 'upload' && isAdmin ? (
-          <ExcelUploadV2
+          <DataManagementView
             companies={uploadCompanies}
             onRefresh={() => companyService.fetchAll().then(setUploadCompanies).catch(() => {})}
           />
