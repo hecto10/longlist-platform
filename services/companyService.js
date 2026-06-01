@@ -541,6 +541,18 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 기업가치 bulk insert
+  async insertValuationsBulk(rows) {
+    const { error } = await supabase.from('valuations').insert(rows);
+    if (error) throw error;
+  },
+
+  // 보고이력 bulk insert
+  async insertReportsBulk(rows) {
+    const { error } = await supabase.from('reports').insert(rows);
+    if (error) throw error;
+  },
+
   // 엑셀 업로드용 upsert
   async upsertFromExcel(payload) {
     const { error } = await supabase
