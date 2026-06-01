@@ -100,8 +100,20 @@ const uploadService = {
     XLSX.writeFile(wb, filename);
   },
 
+  // 태그 정규화: 쉼표 분리 → trim → 빈값 제거 → 중복 제거
+  normalizeTags(raw) {
+    if (!raw) return [];
+    return [...new Set(
+      String(raw).split(',').map(t => t.trim()).filter(Boolean)
+    )];
+  },
+
   // ── 기업 개요 검증 ────────────────────────────────────
-  validateCompanyRows(rows, nameMap) {
+  validateCompanyRows(rows, nameMap, knownTags) {
+    // knownTags: Set<string> (DB 실제 태그) 또는 undefined (fallback: UPLOAD_ENUMS.tags)
+    const knownTagSet = knownTags instanceof Set
+      ? knownTags
+      : new Set(UPLOAD_ENUMS.tags);
     const existingNames = new Set(Object.keys(nameMap));
     const uploadNames   = new Set();
 
@@ -134,11 +146,11 @@ const uploadService = {
       if (row['industry'] && !UPLOAD_ENUMS.industry.includes(row['industry']))
         warnings.push(`industry: "${row['industry']}" 표준 목록에 없는 산업명 (참고 시트 확인)`);
 
-      // 태그 경고 (차단하지 않음)
+      // 태그 정규화 + 미등록 태그 경고
       if (row['tags']) {
-        const tagList = row['tags'].split(',').map(t => t.trim()).filter(Boolean);
-        const unknown = tagList.filter(t => !UPLOAD_ENUMS.tags.includes(t));
-        if (unknown.length) warnings.push(`태그 경고: "${unknown.join(', ')}" 표준 목록에 없는 태그`);
+        const tagList = this.normalizeTags(row['tags']);
+        const newTags = tagList.filter(t => !knownTagSet.has(t));
+        if (newTags.length) warnings.push(`신규 태그: "${newTags.join('", "')}" (저장은 가능합니다)`);
       }
 
       return { ...row, _errors: errors, _warnings: warnings, _status: errors.length ? 'error' : 'valid' };
@@ -200,7 +212,7 @@ const uploadService = {
       employee_count:   row['employee_count']   || null,
       listing_status:   row['listing_status']   || null,
       industry:         row['industry']         || null,
-      tags:             row['tags'] ? row['tags'].split(',').map(t => t.trim()).filter(Boolean) : [],
+      tags:             this.normalizeTags(row['tags']),
       ma_status:        row['ma_status']        || 'X',
       inbound_outbound: row['inbound_outbound'] || null,
     }));

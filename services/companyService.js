@@ -64,6 +64,23 @@ const companyService = {
     if (error) throw error;
   },
 
+  // 현재 DB에 존재하는 모든 고유 태그 수집 → Set 반환 (업로드 validation용)
+  async fetchAllTagsSet() {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('tags')
+      .is('deleted_at', null);
+    if (error) throw error;
+    const tagSet = new Set();
+    (data || []).forEach(row => {
+      (row.tags || []).forEach(t => {
+        const trimmed = t?.trim();
+        if (trimmed) tagSet.add(trimmed);
+      });
+    });
+    return tagSet;
+  },
+
   // 기업 추가 (생성된 row 반환 — 요청 연결용)
   async insertWithReturn(payload) {
     const { data, error } = await supabase
