@@ -1,7 +1,7 @@
 // ─── EXCEL UPLOAD V2 ──────────────────────────────────────
 
 // ── 공통 Preview 테이블 ──────────────────────────────────
-function UploadPreviewTable({ rows, columns, onSave, saving }) {
+function UploadPreviewTable({ rows, columns, onSave, saving, renderCell }) {
   const { useState } = React;
   const [viewMode, setViewMode] = useState('all');
 
@@ -55,8 +55,8 @@ function UploadPreviewTable({ rows, columns, onSave, saving }) {
               }}>
                 <td style={{ padding: '7px 10px', color: 'var(--text3)', fontFamily: 'MaruBuri,sans-serif' }}>{row._rowIndex}</td>
                 {columns.map(c => (
-                  <td key={c.key} style={{ padding: '7px 10px', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {row[c.key] || <span style={{ color: 'var(--text3)' }}>—</span>}
+                  <td key={c.key} style={{ padding: '7px 10px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: c.key === '_tags_parsed' ? 'normal' : 'nowrap' }}>
+                    {renderCell ? renderCell(c.key, row) : (row[c.key] || <span style={{ color: 'var(--text3)' }}>—</span>)}
                   </td>
                 ))}
                 <td style={{ padding: '7px 10px' }}>
@@ -97,10 +97,18 @@ function UploadPreviewTable({ rows, columns, onSave, saving }) {
 
 // ── 기업 개요 업로드 ─────────────────────────────────────
 function CompanyUpload({ companies, onDone }) {
-  const { useState } = React;
-  const [rows,   setRows]   = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState(null);
+  const { useState, useEffect } = React;
+  const [rows,      setRows]      = useState(null);
+  const [saving,    setSaving]    = useState(false);
+  const [result,    setResult]    = useState(null);
+  const [knownTags, setKnownTags] = useState(new Set());
+
+  // 마운트 시 DB 실제 태그 수집
+  useEffect(() => {
+    companyService.fetchAllTagsSet()
+      .then(tagSet => setKnownTags(tagSet))
+      .catch(() => {}); // 실패 시 빈 Set — fallback으로 UPLOAD_ENUMS.tags 사용
+  }, []);
 
   const HEADERS = ['name', 'founded_date', 'location', 'ceo', 'employee_count', 'listing_status', 'industry', 'tags', 'ma_status', 'inbound_outbound'];
   const GUIDE   = [
@@ -120,7 +128,7 @@ function CompanyUpload({ companies, onDone }) {
     { key: 'name', label: '회사명' }, { key: 'founded_date', label: '설립일' },
     { key: 'location', label: '소재지' }, { key: 'ceo', label: '대표이사' },
     { key: 'employee_count', label: '임직원' }, { key: 'listing_status', label: '상장여부' },
-    { key: 'industry', label: '업종' }, { key: 'tags', label: '태그' },
+    { key: 'industry', label: '업종' }, { key: '_tags_parsed', label: '태그 (저장 예정)' },
     { key: 'ma_status', label: 'M&A' }, { key: 'inbound_outbound', label: '경로' },
   ];
 
@@ -137,7 +145,7 @@ function CompanyUpload({ companies, onDone }) {
     const parsed = await uploadService.parseExcel(file);
     if (!parsed.length) { setResult({ type: 'error', msg: '데이터가 없습니다. 4행부터 입력해주세요.' }); return; }
     const nameMap = uploadService.buildNameMap(companies);
-    setRows(uploadService.validateCompanyRows(parsed, nameMap));
+    setRows(uploadService.validateCompanyRows(parsed, nameMap, knownTags));
   }
 
   async function handleSave(validRows) {
@@ -152,12 +160,39 @@ function CompanyUpload({ companies, onDone }) {
     } finally { setSaving(false); }
   }
 
+  // 태그 뱃지 렌더러
+  function renderCell(colKey, row) {
+    if (colKey !== '_tags_parsed') return row[colKey] || <span style={{ color: 'var(--text3)' }}>—</span>;
+    const tags = uploadService.normalizeTags(row['tags']);
+    if (!tags.length) return <span style={{ color: 'var(--text3)' }}>—</span>;
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        {tags.map((t, i) => {
+          const isKnown = knownTags.has(t);
+          return (
+            <span key={i} style={{
+              fontSize: 10, padding: '2px 6px', borderRadius: 4,
+              background: isKnown ? 'var(--bg3)' : 'rgba(245,158,11,0.12)',
+              color:      isKnown ? 'var(--text2)' : 'var(--amber)',
+              border:     `1px solid ${isKnown ? 'var(--border)' : 'rgba(245,158,11,0.4)'}`,
+            }}>
+              {t}{!isKnown && ' ✦신규'}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <UploadPanel title="기업 개요 업로드"
       description="companies 테이블에 기업 기본 정보를 일괄 등록합니다. 동일 회사명 존재 시 SKIP됩니다. 4행부터 실제 데이터를 입력해주세요."
       onDownload={downloadTemplate} onFile={handleFile}
       rows={rows} columns={COLUMNS} onSave={handleSave}
-      saving={saving} result={result} onReset={() => { setRows(null); setResult(null); }}/>
+      saving={saving} result={result}
+      onReset={() => { setRows(null); setResult(null); }}
+      renderCell={renderCell}
+    />
   );
 }
 
@@ -231,7 +266,7 @@ function FinancialUpload({ companies, onDone }) {
 }
 
 // ── 공통 업로드 패널 ─────────────────────────────────────
-function UploadPanel({ title, description, onDownload, onFile, rows, columns, onSave, saving, result, onReset }) {
+function UploadPanel({ title, description, onDownload, onFile, rows, columns, onSave, saving, result, onReset, renderCell }) {
   const { useRef } = React;
   const fileRef = useRef();
 
@@ -276,7 +311,7 @@ function UploadPanel({ title, description, onDownload, onFile, rows, columns, on
       ) : (
         <div>
           <button onClick={onReset} style={{ fontSize: 11, color: 'var(--text3)', background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16 }}>← 다시 선택</button>
-          <UploadPreviewTable rows={rows} columns={columns} onSave={onSave} saving={saving}/>
+          <UploadPreviewTable rows={rows} columns={columns} onSave={onSave} saving={saving} renderCell={renderCell}/>
         </div>
       )}
     </div>
