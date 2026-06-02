@@ -1,20 +1,46 @@
 // ─── VALUATION MODAL (신규 + 수정 공용) ──────────────────
 function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) {
-  const { useState } = React;
+  const { useState, useEffect } = React;
   const isEdit = !!record;
 
   const [form, setForm] = useState({
     valuation_date: isEdit ? (record.valuation_date ?? '') : '',
     valuation:      isEdit ? (record.valuation      ?? '') : '',
-    pe_multiple:    isEdit ? (record.pe_multiple     ?? '') : '',
-    memo:           isEdit ? (record.memo            ?? '') : '',
+    memo:           isEdit ? (record.memo            ?? '') : '', // 거래유형
+    source_link:    isEdit ? (record.source_link     ?? '') : '', // 출처
   });
-
   const [reason,           setReason]           = useState('');
   const [loading,          setLoading]          = useState(false);
   const [linkedRequestId,  setLinkedRequestId]  = useState('');
+  const [financials,       setFinancials]        = useState([]);
 
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
+
+  // 해당 기업 재무 데이터 로드 (P/E 자동 계산용)
+  useEffect(() => {
+    companyService.fetchFinancialsByCompany(company.id)
+      .then(setFinancials)
+      .catch(() => {});
+  }, [company.id]);
+
+  // P/E 자동 계산
+  function calcPE(valuationDate, valuationAmt, financialsList) {
+    if (!valuationDate || !valuationAmt || !financialsList.length) return { pe: null, basis: null };
+    const vDate = new Date(valuationDate);
+    const nearest = financialsList.reduce((best, f) => {
+      if (!f.operating_profit || Number(f.operating_profit) <= 0) return best;
+      const fDate = new Date(f.fiscal_date);
+      if (fDate > vDate) return best;
+      const diff = vDate - fDate;
+      const bestDiff = best ? vDate - new Date(best.fiscal_date) : Infinity;
+      return diff < bestDiff ? f : best;
+    }, null);
+    if (!nearest) return { pe: null, basis: null };
+    const pe = (Number(valuationAmt) / Number(nearest.operating_profit)).toFixed(1);
+    return { pe, basis: nearest };
+  }
+
+  const { pe, basis } = calcPE(form.valuation_date, form.valuation, financials);
 
   async function submit() {
     if (!form.valuation_date) return alert('기준일을 입력해주세요');
@@ -23,9 +49,10 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
     try {
       const payload = {
         valuation_date: form.valuation_date,
-        valuation:      form.valuation   !== '' ? form.valuation   : null,
-        pe_multiple:    form.pe_multiple !== '' ? form.pe_multiple : null,
-        memo:           form.memo        || null,
+        valuation:      form.valuation    !== '' ? form.valuation    : null,
+        pe_multiple:    pe                 !== null ? Number(pe)      : null,
+        memo:           form.memo         || null,
+        source_link:    form.source_link  || null,
       };
       if (isEdit) {
         await companyService.updateValuation(record.id, payload);
@@ -47,7 +74,6 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
           request_id:   linkedRequestId || null,
         });
       }
-      // 요청 연결 처리
       if (isAdmin && session && linkedRequestId) {
         await requestService.updateRequestStatus(
           linkedRequestId, 'done', session.user.id, null, String(company.id)
@@ -79,13 +105,33 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
               <input type="number" className="form-input" placeholder="0" value={form.valuation} onChange={e=>set('valuation',e.target.value)}/>
             </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">P/E 멀티플</label>
-            <input type="number" className="form-input" placeholder="0" value={form.pe_multiple} onChange={e=>set('pe_multiple',e.target.value)}/>
+
+          {/* P/E 자동 계산 표시 */}
+          <div style={{background:'var(--bg3)',borderRadius:6,padding:'8px 12px',marginBottom:12,fontSize:12}}>
+            <span style={{color:'var(--text3)'}}>P/E 자동 계산: </span>
+            {pe !== null ? (
+              <>
+                <strong style={{color:'var(--accent)',fontFamily:'MaruBuri,sans-serif'}}>{pe}x</strong>
+                {basis && (
+                  <span style={{fontSize:11,color:'var(--text3)',marginLeft:8}}>
+                    ({basis.fiscal_date} 영업이익 {Number(basis.operating_profit).toLocaleString()}억 기준)
+                  </span>
+                )}
+              </>
+            ) : (
+              <span style={{color:'var(--text3)'}}>— {!form.valuation_date || !form.valuation ? '기준일·기업가치 입력 후 계산' : '영업이익 데이터 없음 (null 저장)'}</span>
+            )}
           </div>
-          <div className="form-group">
-            <label className="form-label">메모</label>
-            <textarea className="form-textarea" placeholder="기업가치 산정 근거 등" value={form.memo} onChange={e=>set('memo',e.target.value)}/>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">거래유형</label>
+              <input className="form-input" placeholder="예: 신주 투자, Series B, M&A" value={form.memo} onChange={e=>set('memo',e.target.value)}/>
+            </div>
+            <div className="form-group">
+              <label className="form-label">출처</label>
+              <input className="form-input" placeholder="예: 혁신의숲, DART, IR자료" value={form.source_link} onChange={e=>set('source_link',e.target.value)}/>
+            </div>
           </div>
 
           {isEdit && (
@@ -93,7 +139,7 @@ function ValuationModal({ company, record, onClose, onSave, isAdmin, session }) 
               <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:12}}>수정 이력</div>
               <div style={{fontSize:12,color:'var(--text3)',marginBottom:10}}>
                 수정자: <span style={{color:'var(--text2)'}}>{session?.user?.email || '—'}</span>
-                <span style={{marginLeft:8,fontSize:11,color:'var(--text3)'}}>· 자동 기록됩니다</span>
+                <span style={{marginLeft:8,fontSize:11}}>· 자동 기록됩니다</span>
               </div>
               <div className="form-group">
                 <label className="form-label">수정 사유 <span style={{color:'var(--red)'}}>*</span></label>
