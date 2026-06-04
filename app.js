@@ -1,3 +1,15 @@
+// ─── 공통 금액 formatter (억원 단위 기준) ────────────────
+// 10,000억 이상 → n.n조 / 미만 → n,nnn억
+function formatAmount(v) {
+  if (v == null || v === '') return '—';
+  const n = Number(v);
+  if (isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 10000) return sign + (abs / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+  return sign + Math.round(abs).toLocaleString() + '억';
+}
+
 // ─── APP ─────────────────────────────────────────────────
 function App() {
   const { useState, useEffect } = React;
