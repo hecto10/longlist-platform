@@ -222,6 +222,14 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         }, null) : null;
         const calcPE = nearestF && latestV?.valuation && nearestF.operating_profit > 0
           ? (Number(latestV.valuation) / Number(nearestF.operating_profit)).toFixed(1) : null;
+        // 기업가치 전용 formatter (억원 기준: 10000억 이상 → n.n조, 미만 → n,nnn억)
+        const fmtVal = v => {
+          if (v == null || v === '') return '—';
+          const n = Number(v);
+          if (isNaN(n)) return '—';
+          if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+          return n.toLocaleString() + '억';
+        };
         return (
           <div>
 
@@ -419,7 +427,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 {latestV ? (
                   <>
                     <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestV.valuation_date)}</span></div>
-                    <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{fmt(latestV.valuation)}</span></div>
+                    <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{fmtVal(latestV.valuation)}</span></div>
                     <div className="info-row">
                       <span className="info-label">P/E 멀티플</span>
                       <span className="info-value mono">{calcPE ? calcPE+'x' : <span style={{color:'var(--text3)'}}>N/A</span>}</span>
@@ -728,6 +736,14 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         <div className="full-width-section">
           <div className="section-title">기업가치 이력 (누적)</div>
           {valuations.length > 0 ? (() => {
+            // 기업가치 전용 formatter: 10,000억 이상 → n.n조, 미만 → n,nnn억
+            const fmtV = v => {
+              if (v == null || v === '') return '—';
+              const n = Number(v);
+              if (isNaN(n)) return '—';
+              if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+              return n.toLocaleString() + '억';
+            };
             const sorted = [...valuations].sort((a,b) => new Date(a.valuation_date) - new Date(b.valuation_date));
             const latest = sorted[sorted.length-1];
             const maxVal = Math.max(...sorted.map(v => Number(v.valuation)||0), 1);
@@ -735,7 +751,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
             const ti = maxVal <= magnitude*2 ? magnitude/2 : maxVal <= magnitude*5 ? magnitude : magnitude*2;
             const ticks = [];
             for(let v=ti; v<=maxVal*1.15; v+=ti) ticks.push(v);
-            const yAxisW = 52; const chartH = 160; const padT = 20; const padB = 28; const padR = 12;
+            const yAxisW = 56; const chartH = 160; const padT = 20; const padB = 28; const padR = 12;
             const innerH = chartH - padT - padB;
             const colW = Math.max(60, Math.floor(500 / sorted.length));
             const svgW = Math.max(sorted.length * colW + yAxisW + padR, 400);
@@ -745,7 +761,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 <div style={{display:'flex',gap:32,marginBottom:20,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
                   <div>
                     <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>최신 기업가치</div>
-                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--accent)'}}>{fmt(latest.valuation)}</div>
+                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--accent)'}}>{fmtV(latest.valuation)}</div>
                     <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmtDate(latest.valuation_date)} · {latest.memo||'—'}</div>
                   </div>
                   <div>
@@ -761,7 +777,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                         <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:Number(chg)>=0?'var(--green)':'var(--red)'}}>
                           {Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%
                         </div>
-                        <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmt(first.valuation)} → {fmt(latest.valuation)}</div>
+                        <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmtV(first.valuation)} → {fmtV(latest.valuation)}</div>
                       </div>
                     );
                   })()}
@@ -773,7 +789,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       return (
                         <g key={v}>
                           <line x1={yAxisW} y1={y} x2={svgW-padR} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3"/>
-                          <text x={yAxisW-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--text3)" fontFamily="MaruBuri,sans-serif">{fmt(v)}</text>
+                          <text x={yAxisW-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--text3)" fontFamily="MaruBuri,sans-serif">{fmtV(v)}</text>
                         </g>
                       );
                     })}
@@ -787,7 +803,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       return (
                         <g key={v.id}>
                           <rect x={colX} y={bY} width={barW} height={bH} fill={isLatest ? 'var(--accent)' : 'rgba(255,106,0,0.35)'} rx="3"/>
-                          <text x={colX+barW/2} y={bY-4} textAnchor="middle" fontSize="9" fill="var(--text2)" fontFamily="MaruBuri,sans-serif">{fmt(val)}</text>
+                          <text x={colX+barW/2} y={bY-4} textAnchor="middle" fontSize="9" fill="var(--text2)" fontFamily="MaruBuri,sans-serif">{fmtV(val)}</text>
                           <text x={colX+barW/2} y={padT+innerH+14} textAnchor="middle" fontSize="8" fill="var(--text3)" fontFamily="MaruBuri,sans-serif">
                             {new Date(v.valuation_date).getFullYear()}.{String(new Date(v.valuation_date).getMonth()+1).padStart(2,'0')}
                           </text>
@@ -827,12 +843,14 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>}
                           {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>}
                         </div>
-                        <div style={{...cs,fontWeight:500}}>{fmt(v.valuation)}</div>
+                        <div style={{...cs,fontWeight:500}}>{fmtV(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
                         <div style={cs}>{dealType}</div>
                         <div style={{...cs}}>
                           {v.source_link
-                            ? <a href={v.source_link} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>링크</a>
+                            ? /^https?:\/\//.test(v.source_link)
+                              ? <a href={v.source_link} target="_blank" rel="noreferrer" style={{color:'var(--accent)',textDecoration:'none',fontWeight:500}}>링크</a>
+                              : <span style={{color:'var(--text2)'}}>{v.source_link}</span>
                             : textSource
                               ? <span style={{color:'var(--text2)'}}>{textSource}</span>
                               : <span style={{color:'var(--text3)'}}>—</span>}
