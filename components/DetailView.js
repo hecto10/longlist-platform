@@ -232,6 +232,15 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
           return n.toLocaleString() + '억';
         };
+        // 재무실적 전용 formatter (음수 처리 포함)
+        const fmtFin = v => {
+          if (v == null || v === '') return '—';
+          const n = Number(v);
+          if (isNaN(n)) return '—';
+          if (n >= 10000)  return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+          if (n <= -10000) return '-' + (Math.abs(n) / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+          return Math.round(n).toLocaleString() + '억';
+        };
         return (
           <div>
 
@@ -415,10 +424,10 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 {latestF ? (
                   <>
                     <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestF.fiscal_date)}</span></div>
-                    <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmt(latestF.revenue)}</span></div>
-                    <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(latestF.operating_profit)}</span></div>
-                    <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmt(latestF.total_assets)}</span></div>
-                    <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmt(latestF.net_assets)}</span></div>
+                    <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmtFin(latestF.revenue)}</span></div>
+                    <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{fmtFin(latestF.operating_profit)}</span></div>
+                    <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmtFin(latestF.total_assets)}</span></div>
+                    <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmtFin(latestF.net_assets)}</span></div>
                     {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value">{latestF.memo}</span></div>}
                   </>
                 ) : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
@@ -542,6 +551,16 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           ) || null;
         }
 
+        // 재무실적 전용 formatter (억원 기준: 10,000억 이상 → n.n조, 미만 → n,nnn억)
+        const fmtF = v => {
+          if (v == null || v === '') return '—';
+          const n = Number(v);
+          if (isNaN(n)) return '—';
+          if (n >= 10000)  return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+          if (n <= -10000) return '-' + (Math.abs(n) / 10000).toFixed(1).replace(/\.0$/, '') + '조';
+          return Math.round(n).toLocaleString() + '억';
+        };
+
         return (
           <div style={{display:'flex',flexDirection:'column',gap:20}}>
 
@@ -574,7 +593,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {f.revenue != null && (
                             <div>
                               <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>매출</div>
-                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif'}}>{fmt(f.revenue)}</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif'}}>{fmtF(f.revenue)}</div>
                               {revYoY !== null && (
                                 <div style={{fontSize:10,color:Number(revYoY)>=0?'var(--green)':'var(--red)',marginTop:2}}>
                                   {Number(revYoY)>=0?'▲':'▼'}{Math.abs(revYoY)}% <span style={{color:'var(--text3)'}}>전년동기비</span>
@@ -585,7 +604,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {f.operating_profit != null && (
                             <div>
                               <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>영업이익</div>
-                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif',color:f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(f.operating_profit)}</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif',color:f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmtF(f.operating_profit)}</div>
                               {opYoY !== null && (
                                 <div style={{fontSize:10,color:Number(opYoY)>=0?'var(--green)':'var(--red)',marginTop:2}}>
                                   {Number(opYoY)>=0?'▲':'▼'}{Math.abs(opYoY)}% <span style={{color:'var(--text3)'}}>전년동기비</span>
@@ -651,11 +670,11 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                               {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                             </td>
                             <td style={{fontSize:12}}>
-                              {fmt(f.revenue)}
+                              {fmtF(f.revenue)}
                               {revChg && <span style={{fontSize:9,color:Number(revChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(revChg)>=0?'▲':'▼'}{Math.abs(revChg)}%</span>}
                             </td>
                             <td style={{fontSize:12}}>
-                              <span style={{color:f.operating_profit==null?'var(--text3)':f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmt(f.operating_profit)}</span>
+                              <span style={{color:f.operating_profit==null?'var(--text3)':f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmtF(f.operating_profit)}</span>
                               {opChg && <span style={{fontSize:9,color:Number(opChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(opChg)>=0?'▲':'▼'}{Math.abs(opChg)}%</span>}
                             </td>
                             <td style={{fontSize:12,color:opMargin===null?'var(--text3)':Number(opMargin)<0?'var(--red)':'var(--text)',fontFamily:'MaruBuri,sans-serif'}}>
@@ -704,8 +723,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                             {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>}
                             {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                           </td>
-                          <td style={{fontSize:12}}>{fmt(f.total_assets)}</td>
-                          <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmt(f.net_assets)}</td>
+                          <td style={{fontSize:12}}>{fmtF(f.total_assets)}</td>
+                          <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmtF(f.net_assets)}</td>
                           <td style={{fontFamily:'inherit',fontSize:11,color:'var(--text3)'}}>{f.source||'—'}</td>
                         </tr>
                       ))}</tbody>
