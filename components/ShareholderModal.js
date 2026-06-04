@@ -12,6 +12,7 @@ function ShareholderModal({ company, record, onClose, onSave }) {
     note:                          record?.note                         ?? '',
   });
   const [loading, setLoading] = useState(false);
+  const [reason,  setReason]  = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -35,9 +36,10 @@ function ShareholderModal({ company, record, onClose, onSave }) {
 
   async function submit() {
     if (!form.shareholder_name.trim()) return alert('주주명을 입력해주세요');
+    if (!reason.trim()) return alert('수정 사유를 입력해주세요');
     setLoading(true);
     try {
-      await companyService.updateShareholder(record.id, {
+      const payload = {
         shareholder_name:              form.shareholder_name.trim(),
         shareholder_type:              form.shareholder_type              || null,
         common_shares:                 cs || null,
@@ -48,7 +50,15 @@ function ShareholderModal({ company, record, onClose, onSave }) {
         total_ratio:                   tr ? Number(tr) : null,
         relation_to_major_shareholder: form.relation_to_major_shareholder || null,
         note:                          form.note || null,
-      }, record.snapshot_id);
+      };
+      await companyService.updateShareholder(record.id, payload, record.snapshot_id);
+      await companyService.logDataChange({
+        target_table: 'shareholders', target_id: record.id, company_id: company.id,
+        action_type:  'UPDATE',
+        old_snapshot: record, new_snapshot: { ...record, ...payload },
+        changed_by:   session?.user?.email || null,
+        reason:       reason.trim(),
+      });
       onSave(); onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
@@ -108,6 +118,16 @@ function ShareholderModal({ company, record, onClose, onSave }) {
           <div className="form-group">
             <label className="form-label">비고</label>
             <textarea className="form-textarea" value={form.note} onChange={e => set('note', e.target.value)} />
+          </div>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 8 }}>
+              수정자: <span style={{ color: 'var(--text2)' }}>{session?.user?.email || '—'}</span>
+              <span style={{ marginLeft: 8 }}>· 자동 기록됩니다</span>
+            </div>
+            <div className="form-group">
+              <label className="form-label">수정 사유 <span style={{ color: 'var(--red)' }}>*</span></label>
+              <input className="form-input" placeholder="수정 사유 입력" value={reason} onChange={e => setReason(e.target.value)}/>
+            </div>
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>

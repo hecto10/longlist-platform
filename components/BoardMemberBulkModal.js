@@ -5,7 +5,7 @@ function BoardMemberBulkModal({ company, existingBoardMembers, onClose, onSave }
   const emptyRow = () => ({
     _id: Math.random().toString(36).slice(2),
     member_type: '', name: '', birth_year: '',
-    registration_status: '', position: '', responsibility: '',
+    registration_status: '', responsibility: '',
     relation_to_major_shareholder: '', note: '',
   });
 
@@ -65,7 +65,6 @@ function BoardMemberBulkModal({ company, existingBoardMembers, onClose, onSave }
           name:                          r.name.trim(),
           birth_year:                    r.birth_year ? Number(r.birth_year) : null,
           registration_status:           r.registration_status           || null,
-          position:                      r.position                      || null,
           responsibility:                r.responsibility                || null,
           relation_to_major_shareholder: r.relation_to_major_shareholder || null,
           note:                          r.note                          || null,
@@ -102,7 +101,7 @@ function BoardMemberBulkModal({ company, existingBoardMembers, onClose, onSave }
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: 'var(--bg3)' }}>
-                  {['구분 *','성명 *','출생연도','등기여부','직위','담당업무','최대주주 관계','비고',''].map((h,i) => (
+                  {['구분 *','성명 *','출생연도','등기여부','담당업무','최대주주 관계','비고',''].map((h,i) => (
                     <th key={i} style={{ padding: '8px 8px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: 'var(--text3)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -139,11 +138,6 @@ function BoardMemberBulkModal({ company, existingBoardMembers, onClose, onSave }
                           <option value="등기">등기</option>
                           <option value="미등기">미등기</option>
                         </select>
-                      </td>
-                      <td style={{ padding: '4px 6px', minWidth: 110 }}>
-                        <input className="form-input" style={{ fontSize: 12, padding: '5px 8px' }}
-                          placeholder="예: 대표이사" value={r.position}
-                          onChange={e => setRow(r._id, 'position', e.target.value)} />
                       </td>
                       <td style={{ padding: '4px 6px', minWidth: 100 }}>
                         <input className="form-input" style={{ fontSize: 12, padding: '5px 8px' }}
