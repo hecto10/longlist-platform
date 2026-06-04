@@ -145,6 +145,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         <ShareholderModal
           company={company}
           record={modal.record}
+          session={session}
           onClose={closeModal}
           onSave={() => { load(); showToast(modal.record ? '주주 정보가 수정됐어요' : '주주가 추가됐어요'); }}
         />

@@ -1,5 +1,5 @@
 // ─── SHAREHOLDER MODAL (단일 수정 전용) ───────────────────
-function ShareholderModal({ company, record, onClose, onSave }) {
+function ShareholderModal({ company, record, onClose, onSave, session }) {
   const { useState, useEffect } = React;
 
   const [snapshot, setSnapshot] = useState(null);
