@@ -366,8 +366,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                   <table className="history-table" style={{fontSize:11,minWidth:620}}>
                     <thead>
                       <tr>
-                        {['구분','성명','출생연도','등기여부','담당업무','최대주주관계'].map(h=>(
-                          <th key={h} style={{fontSize:10,textAlign:h==='구분'||h==='성명'?'left':'center'}}>{h}</th>
+                        {['구분','성명','출생연도','등기여부','담당업무','비고'].map(h=>(
+                          <th key={h} style={{fontSize:10,textAlign:h==='구분'||h==='성명'||h==='비고'?'left':'center'}}>{h}</th>
                         ))}
                         {isAdmin && <th></th>}
                       </tr>
@@ -383,8 +383,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                               {m.registration_status||'—'}
                             </span>
                           </td>
-                          <td style={{textAlign:'center'}}>{m.responsibility||'—'}</td>
-                          <td style={{textAlign:'center',fontSize:11,color:'var(--text3)'}}>{m.relation_to_major_shareholder||'—'}</td>
+                          <td style={{textAlign:'center',color:'var(--text2)'}}>{m.responsibility||'—'}</td>
+                          <td style={{textAlign:'left',color:'var(--text2)',fontSize:11}}>{m.note||'—'}</td>
                           {isAdmin && (
                             <td style={{textAlign:'right',whiteSpace:'nowrap'}}>
                               <button className="row-edit-btn" onClick={()=>openModal('boardMember',m)}>✎</button>
