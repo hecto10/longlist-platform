@@ -151,12 +151,12 @@ function ListView({ onSelect, isAdmin = false, session, profile, prefillRequest,
                   {(company.tags||[]).length > 3 && <span className="tag">+{(company.tags||[]).length-3}</span>}
                 </div>
                 <div>
-                  <div className="mono">{fmt(f?.revenue)}</div>
+                  <div className="mono">{formatAmount(f?.revenue)}</div>
                   {revChange && <div className={`change ${Number(revChange)>=0?'up':'down'}`} style={{fontSize:11}}>{Number(revChange)>=0?'↑':'↓'}{Math.abs(revChange)}%</div>}
                 </div>
                 <div>
                   <div className="mono" style={{color:f?.operating_profit==null?'var(--text3)':f.operating_profit<0?'var(--red)':'var(--text)'}}>
-                    {fmt(f?.operating_profit)}
+                    {formatAmount(f?.operating_profit)}
                   </div>
                   {(() => {
                     const fp2 = financials[company.id+'_prev'];
@@ -165,7 +165,7 @@ function ListView({ onSelect, isAdmin = false, session, profile, prefillRequest,
                     return opChange ? <div className={`change ${Number(opChange)>=0?'up':'down'}`} style={{fontSize:11}}>{Number(opChange)>=0?'↑':'↓'}{Math.abs(opChange)}%</div> : null;
                   })()}
                 </div>
-                <div className="mono">{fmt(v?.valuation)}</div>
+                <div className="mono">{formatAmount(v?.valuation)}</div>
                 <div style={{color:'var(--text3)',fontSize:18}}>›</div>
               </div>
             );

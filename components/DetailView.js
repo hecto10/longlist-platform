@@ -224,23 +224,6 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         }, null) : null;
         const calcPE = nearestF && latestV?.valuation && nearestF.operating_profit > 0
           ? (Number(latestV.valuation) / Number(nearestF.operating_profit)).toFixed(1) : null;
-        // 기업가치 전용 formatter (억원 기준: 10000억 이상 → n.n조, 미만 → n,nnn억)
-        const fmtVal = v => {
-          if (v == null || v === '') return '—';
-          const n = Number(v);
-          if (isNaN(n)) return '—';
-          if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
-          return n.toLocaleString() + '억';
-        };
-        // 재무실적 전용 formatter (음수 처리 포함)
-        const fmtFin = v => {
-          if (v == null || v === '') return '—';
-          const n = Number(v);
-          if (isNaN(n)) return '—';
-          if (n >= 10000)  return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
-          if (n <= -10000) return '-' + (Math.abs(n) / 10000).toFixed(1).replace(/\.0$/, '') + '조';
-          return Math.round(n).toLocaleString() + '억';
-        };
         return (
           <div>
 
@@ -424,10 +407,10 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 {latestF ? (
                   <>
                     <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestF.fiscal_date)}</span></div>
-                    <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{fmtFin(latestF.revenue)}</span></div>
-                    <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{fmtFin(latestF.operating_profit)}</span></div>
-                    <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{fmtFin(latestF.total_assets)}</span></div>
-                    <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{fmtFin(latestF.net_assets)}</span></div>
+                    <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{formatAmount(latestF.revenue)}</span></div>
+                    <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{formatAmount(latestF.operating_profit)}</span></div>
+                    <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{formatAmount(latestF.total_assets)}</span></div>
+                    <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{formatAmount(latestF.net_assets)}</span></div>
                     {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value">{latestF.memo}</span></div>}
                   </>
                 ) : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
@@ -437,7 +420,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 {latestV ? (
                   <>
                     <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestV.valuation_date)}</span></div>
-                    <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{fmtVal(latestV.valuation)}</span></div>
+                    <div className="info-row"><span className="info-label">기업가치</span><span className="info-value mono" style={{color:'var(--accent)',fontWeight:600}}>{formatAmount(latestV.valuation)}</span></div>
                     <div className="info-row">
                       <span className="info-label">P/E 멀티플</span>
                       <span className="info-value mono">{calcPE ? calcPE+'x' : <span style={{color:'var(--text3)'}}>N/A</span>}</span>
@@ -551,15 +534,6 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           ) || null;
         }
 
-        // 재무실적 전용 formatter (억원 기준: 10,000억 이상 → n.n조, 미만 → n,nnn억)
-        const fmtF = v => {
-          if (v == null || v === '') return '—';
-          const n = Number(v);
-          if (isNaN(n)) return '—';
-          if (n >= 10000)  return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
-          if (n <= -10000) return '-' + (Math.abs(n) / 10000).toFixed(1).replace(/\.0$/, '') + '조';
-          return Math.round(n).toLocaleString() + '억';
-        };
 
         return (
           <div style={{display:'flex',flexDirection:'column',gap:20}}>
@@ -593,7 +567,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {f.revenue != null && (
                             <div>
                               <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>매출</div>
-                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif'}}>{fmtF(f.revenue)}</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif'}}>{formatAmount(f.revenue)}</div>
                               {revYoY !== null && (
                                 <div style={{fontSize:10,color:Number(revYoY)>=0?'var(--green)':'var(--red)',marginTop:2}}>
                                   {Number(revYoY)>=0?'▲':'▼'}{Math.abs(revYoY)}% <span style={{color:'var(--text3)'}}>전년동기비</span>
@@ -604,7 +578,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {f.operating_profit != null && (
                             <div>
                               <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>영업이익</div>
-                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif',color:f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmtF(f.operating_profit)}</div>
+                              <div style={{fontSize:13,fontWeight:600,fontFamily:'MaruBuri,sans-serif',color:f.operating_profit<0?'var(--red)':'var(--text)'}}>{formatAmount(f.operating_profit)}</div>
                               {opYoY !== null && (
                                 <div style={{fontSize:10,color:Number(opYoY)>=0?'var(--green)':'var(--red)',marginTop:2}}>
                                   {Number(opYoY)>=0?'▲':'▼'}{Math.abs(opYoY)}% <span style={{color:'var(--text3)'}}>전년동기비</span>
@@ -670,11 +644,11 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                               {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                             </td>
                             <td style={{fontSize:12}}>
-                              {fmtF(f.revenue)}
+                              {formatAmount(f.revenue)}
                               {revChg && <span style={{fontSize:9,color:Number(revChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(revChg)>=0?'▲':'▼'}{Math.abs(revChg)}%</span>}
                             </td>
                             <td style={{fontSize:12}}>
-                              <span style={{color:f.operating_profit==null?'var(--text3)':f.operating_profit<0?'var(--red)':'var(--text)'}}>{fmtF(f.operating_profit)}</span>
+                              <span style={{color:f.operating_profit==null?'var(--text3)':f.operating_profit<0?'var(--red)':'var(--text)'}}>{formatAmount(f.operating_profit)}</span>
                               {opChg && <span style={{fontSize:9,color:Number(opChg)>=0?'var(--green)':'var(--red)',marginLeft:4}}>{Number(opChg)>=0?'▲':'▼'}{Math.abs(opChg)}%</span>}
                             </td>
                             <td style={{fontSize:12,color:opMargin===null?'var(--text3)':Number(opMargin)<0?'var(--red)':'var(--text)',fontFamily:'MaruBuri,sans-serif'}}>
@@ -723,8 +697,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                             {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>}
                             {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>}
                           </td>
-                          <td style={{fontSize:12}}>{fmtF(f.total_assets)}</td>
-                          <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{fmtF(f.net_assets)}</td>
+                          <td style={{fontSize:12}}>{formatAmount(f.total_assets)}</td>
+                          <td style={{fontSize:12,color:f.net_assets!=null&&Number(f.net_assets)<0?'var(--red)':'var(--text)'}}>{formatAmount(f.net_assets)}</td>
                           <td style={{fontFamily:'inherit',fontSize:11,color:'var(--text3)'}}>{f.source||'—'}</td>
                         </tr>
                       ))}</tbody>
@@ -756,14 +730,6 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         <div className="full-width-section">
           <div className="section-title">기업가치 이력 (누적)</div>
           {valuations.length > 0 ? (() => {
-            // 기업가치 전용 formatter: 10,000억 이상 → n.n조, 미만 → n,nnn억
-            const fmtV = v => {
-              if (v == null || v === '') return '—';
-              const n = Number(v);
-              if (isNaN(n)) return '—';
-              if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, '') + '조';
-              return n.toLocaleString() + '억';
-            };
             const sorted = [...valuations].sort((a,b) => new Date(a.valuation_date) - new Date(b.valuation_date));
             const latest = sorted[sorted.length-1];
             const maxVal = Math.max(...sorted.map(v => Number(v.valuation)||0), 1);
@@ -781,7 +747,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 <div style={{display:'flex',gap:32,marginBottom:20,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
                   <div>
                     <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>최신 기업가치</div>
-                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--accent)'}}>{fmtV(latest.valuation)}</div>
+                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--accent)'}}>{formatAmount(latest.valuation)}</div>
                     <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmtDate(latest.valuation_date)} · {latest.memo||'—'}</div>
                   </div>
                   <div>
@@ -797,7 +763,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                         <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:Number(chg)>=0?'var(--green)':'var(--red)'}}>
                           {Number(chg)>=0?'▲':'▼'}{Math.abs(chg)}%
                         </div>
-                        <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmtV(first.valuation)} → {fmtV(latest.valuation)}</div>
+                        <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{formatAmount(first.valuation)} → {formatAmount(latest.valuation)}</div>
                       </div>
                     );
                   })()}
@@ -809,7 +775,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       return (
                         <g key={v}>
                           <line x1={yAxisW} y1={y} x2={svgW-padR} y2={y} stroke="var(--border)" strokeWidth="0.5" strokeDasharray="3,3"/>
-                          <text x={yAxisW-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--text3)" fontFamily="MaruBuri,sans-serif">{fmtV(v)}</text>
+                          <text x={yAxisW-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--text3)" fontFamily="MaruBuri,sans-serif">{formatAmount(v)}</text>
                         </g>
                       );
                     })}
@@ -823,7 +789,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       return (
                         <g key={v.id}>
                           <rect x={colX} y={bY} width={barW} height={bH} fill={isLatest ? 'var(--accent)' : 'rgba(255,106,0,0.35)'} rx="3"/>
-                          <text x={colX+barW/2} y={bY-4} textAnchor="middle" fontSize="9" fill="var(--text2)" fontFamily="MaruBuri,sans-serif">{fmtV(val)}</text>
+                          <text x={colX+barW/2} y={bY-4} textAnchor="middle" fontSize="9" fill="var(--text2)" fontFamily="MaruBuri,sans-serif">{formatAmount(val)}</text>
                           <text x={colX+barW/2} y={padT+innerH+14} textAnchor="middle" fontSize="8" fill="var(--text3)" fontFamily="MaruBuri,sans-serif">
                             {new Date(v.valuation_date).getFullYear()}.{String(new Date(v.valuation_date).getMonth()+1).padStart(2,'0')}
                           </text>
@@ -863,7 +829,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>}
                           {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>}
                         </div>
-                        <div style={{...cs,fontWeight:500}}>{fmtV(v.valuation)}</div>
+                        <div style={{...cs,fontWeight:500}}>{formatAmount(v.valuation)}</div>
                         <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
                         <div style={cs}>{dealType}</div>
                         <div style={{...cs}}>
