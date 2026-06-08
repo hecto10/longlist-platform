@@ -852,10 +852,13 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
       )}
 
       {activeTab === 'review' && (() => {
-        const raw = company.inbound_outbound || '';
-        const isOutbound = raw.includes('아웃바운드');
-        const isInbound = !isOutbound && raw !== 'X' && raw !== '' && raw !== '-';
-        const inboundSource = isInbound ? raw : null;
+        // deal_type / review_requester 우선, 없으면 inbound_outbound fallback
+        const raw      = company.inbound_outbound || '';
+        const dealType = company.deal_type
+          || (raw.includes('아웃바운드') ? '아웃바운드' : raw.includes('인바운드') ? '인바운드' : null);
+        const reviewer = company.review_requester
+          || (raw.includes(' / ') ? raw.split(' / ').slice(1).join(' / ').trim() : null);
+        const dealIcon = dealType === '인바운드' ? '📥' : dealType === '아웃바운드' ? '📤' : '—';
         return (
           <div className="full-width-section">
             <div className="section-title">딜 검토 현황</div>
@@ -892,19 +895,21 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 <div style={{color:'var(--text3)',fontSize:13,padding:'12px 0'}}>투자/인수 검토는 진행되지 않았습니다.</div>
               ) : (
                 <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 16px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg3)'}}>
-                    <span style={{fontSize:16}}>{isInbound?'📥':isOutbound?'📤':'—'}</span>
-                    <div>
-                      <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>딜 유형</div>
-                      <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{isInbound ? '인바운드' : isOutbound ? '아웃바운드' : '—'}</div>
+                  {dealType && (
+                    <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 16px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg3)'}}>
+                      <span style={{fontSize:16}}>{dealIcon}</span>
+                      <div>
+                        <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>딜 유형</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{dealType}</div>
+                      </div>
                     </div>
-                  </div>
-                  {isInbound && inboundSource && (
+                  )}
+                  {reviewer && (
                     <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 16px',borderRadius:8,border:'1px solid var(--border)',background:'var(--bg3)'}}>
                       <span style={{fontSize:16}}>👤</span>
                       <div>
                         <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>검토 요청자</div>
-                        <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{inboundSource}</div>
+                        <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{reviewer}</div>
                       </div>
                     </div>
                   )}

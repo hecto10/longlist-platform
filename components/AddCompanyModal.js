@@ -1,55 +1,33 @@
 // ─── ADD COMPANY MODAL ───────────────────────────────────────
-function AddCompanyModal({ onClose, onSave, allTags, prefill, isAdmin, session }) {
-  const { useState, useRef } = React;
+function AddCompanyModal({ onClose, onSave, allTags }) {
+  const { useState } = React;
   const [form, setForm] = useState({
-    name:             prefill?.company_name || '',
-    founded_date:     '',
-    location:         '',
-    ceo:              prefill?.ceo          || '',
-    employee_count:   '',
-    listing_status:   '',
-    industry:         '',
-    ma_status:        'X',
-    inbound_outbound: '',
+    name: '', founded_date: '', location: '', ceo: '', employee_count: '',
+    listing_status: '', industry: '', ma_status: 'X', inbound_outbound: '',
+    deal_type: '', review_requester: '',
   });
   const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
-  const linkedRequestId = useRef('');
   const set = (k, v) => setForm(f => ({...f, [k]: v}));
 
   async function submit() {
     if (!form.name.trim()) return alert('기업명을 입력해주세요');
     setLoading(true);
     try {
-      const payload = {
-        name:             form.name.trim(),
-        founded_date:     form.founded_date     || null,
-        location:         form.location         || null,
-        ceo:              form.ceo              || null,
-        employee_count:   form.employee_count   || null,
-        listing_status:   form.listing_status   || null,
-        industry:         form.industry         || null,
-        tags:             selectedTags,
-        ma_status:        form.ma_status        || 'X',
+      await companyService.insert({
+        name: form.name.trim(),
+        founded_date: form.founded_date || null,
+        location: form.location || null,
+        ceo: form.ceo || null,
+        employee_count: form.employee_count || null,
+        listing_status: form.listing_status || null,
+        industry: form.industry || null,
+        tags: selectedTags,
+        ma_status: form.ma_status || 'X',
         inbound_outbound: form.inbound_outbound || null,
-      };
-
-      // 요청 연결이 있으면 id 반환이 필요 → insertWithReturn 사용
-      let newCompanyId = null;
-      if (isAdmin && session && linkedRequestId.current) {
-        const newCompany = await companyService.insertWithReturn(payload);
-        newCompanyId = String(newCompany.id);
-      } else {
-        await companyService.insert(payload);
-      }
-
-      // 요청 연결 처리
-      if (newCompanyId && linkedRequestId.current) {
-        await requestService.updateRequestStatus(
-          linkedRequestId.current, 'done', session.user.id, null, newCompanyId
-        );
-      }
-
+        deal_type:        form.deal_type        || null,
+        review_requester: form.review_requester || null,
+      });
       onSave(); onClose();
     } catch(e) {
       alert('저장 실패: ' + e.message);
@@ -62,19 +40,10 @@ function AddCompanyModal({ onClose, onSave, allTags, prefill, isAdmin, session }
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <div className="modal-title">
-            새 기업 추가
-            {prefill && <span style={{ fontSize: 11, color: 'var(--accent)', marginLeft: 8, fontWeight: 400 }}>요청 정보 자동 입력됨</span>}
-          </div>
+          <div className="modal-title">새 기업 추가</div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
-          {prefill?.brand_name && (
-            <div style={{ fontSize: 12, color: 'var(--text2)', background: 'var(--bg3)', borderRadius: 6, padding: '8px 12px', marginBottom: 12 }}>
-              브랜드명: <strong>{prefill.brand_name}</strong>
-              {prefill.website && <span style={{ marginLeft: 12 }}>웹사이트: <a href={prefill.website} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>{prefill.website}</a></span>}
-            </div>
-          )}
           <div className="form-group">
             <label className="form-label">기업명 *</label>
             <input className="form-input" placeholder="기업명 입력" value={form.name} onChange={e=>set('name',e.target.value)}/>
@@ -117,7 +86,11 @@ function AddCompanyModal({ onClose, onSave, allTags, prefill, isAdmin, session }
           </div>
           <div className="form-group">
             <label className="form-label">태그</label>
-            <TagInput selectedTags={selectedTags} onChange={setSelectedTags} suggestions={allTags || []}/>
+            <TagInput
+              selectedTags={selectedTags}
+              onChange={setSelectedTags}
+              suggestions={allTags || []}
+            />
           </div>
           <div className="form-row">
             <div className="form-group">
@@ -132,19 +105,18 @@ function AddCompanyModal({ onClose, onSave, allTags, prefill, isAdmin, session }
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">인바운드/아웃바운드 경로</label>
-              <input className="form-input" placeholder="예: 아웃바운드 / HI 김민정 전무" value={form.inbound_outbound} onChange={e=>set('inbound_outbound',e.target.value)}/>
+              <label className="form-label">딜 유형</label>
+              <select className="form-input" value={form.deal_type} onChange={e=>set('deal_type',e.target.value)}>
+                <option value="">선택</option>
+                <option value="인바운드">인바운드</option>
+                <option value="아웃바운드">아웃바운드</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">검토 요청자</label>
+              <input className="form-input" placeholder="예: HI 김민정 전무" value={form.review_requester} onChange={e=>set('review_requester',e.target.value)}/>
             </div>
           </div>
-
-          {isAdmin && (
-            <RequestLinkSection
-              requestType="ADD_COMPANY"
-              companyId={null}
-              onSelect={id => { linkedRequestId.current = id; }}
-            />
-          )}
-
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
             <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading ? '저장 중...' : '기업 추가'}</button>
