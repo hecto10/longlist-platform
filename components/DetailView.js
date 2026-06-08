@@ -376,7 +376,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                             </span>
                           </td>
                           <td style={{textAlign:'center',color:'var(--text2)'}}>{m.responsibility||'—'}</td>
-                          <td style={{textAlign:'left',color:'var(--text2)',fontSize:11}}>{m.note||'—'}</td>
+                          <td style={{textAlign:'left',color:'var(--text2)',fontSize:11,whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6,verticalAlign:'top'}}>{m.note||'—'}</td>
                           {isAdmin && (
                             <td style={{textAlign:'right',whiteSpace:'nowrap'}}>
                               <button className="row-edit-btn" onClick={()=>openModal('boardMember',m)}>✎</button>
@@ -411,7 +411,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                     <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{formatAmount(latestF.operating_profit)}</span></div>
                     <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{formatAmount(latestF.total_assets)}</span></div>
                     <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{formatAmount(latestF.net_assets)}</span></div>
-                    {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value">{latestF.memo}</span></div>}
+                    {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value" style={{whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6}}>{latestF.memo}</span></div>}
                   </>
                 ) : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
               </div>
@@ -599,7 +599,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                               </div>
                             </div>
                           )}
-                          {f.memo && <div style={{fontSize:11,color:'var(--text3)',alignSelf:'center',fontStyle:'italic'}}>"{f.memo}"</div>}
+                          {f.memo && <div style={{fontSize:11,color:'var(--text3)',fontStyle:'italic',whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6,maxWidth:200}}>"{f.memo}"</div>}
                         </div>
                         {/* 수정/삭제 */}
                         {isAdmin && (
@@ -883,7 +883,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       <td style={{textAlign:'left',fontFamily:'inherit'}}>{r.report_type || '—'}</td>
                       <td style={{textAlign:'left',fontFamily:'inherit',color:'var(--text2)'}}>{r.report_target || '—'}</td>
                       <td style={{textAlign:'left'}}>{r.ppt_link ? <a className="report-link" href={r.ppt_link} target="_blank" rel="noreferrer">PPT 보기 →</a> : <span style={{color:'var(--text3)'}}>—</span>}</td>
-                      <td style={{textAlign:'left',fontFamily:'inherit',fontSize:12,color:'var(--text3)'}}>{r.notes || '—'}</td>
+                      <td style={{textAlign:'left',fontFamily:'inherit',fontSize:12,color:'var(--text3)',whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6,verticalAlign:'top',maxWidth:240}}>{r.notes || '—'}</td>
                     </tr>
                   ))}</tbody>
                 </table>
