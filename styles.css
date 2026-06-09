@@ -100,11 +100,6 @@ body { font-family: 'MaruBuri', sans-serif; background: var(--bg); color: var(--
 .history-table td:first-child { text-align: left; color: var(--text); font-family: inherit; font-weight: 500; }
 .history-table tr:last-child td { border-bottom: none; }
 .history-table tr:hover td { background: #fff5f0; }
-.row-edit-btn { opacity: 1; background: none; border: none; color: var(--text3); font-size: 12px; cursor: pointer; padding: 2px 4px; border-radius: 4px; line-height: 1; vertical-align: middle; }
-.row-edit-btn:hover { color: var(--accent); background: rgba(255,106,0,0.08); }
-.row-delete-btn { opacity: 1; background: none; border: none; color: var(--text3); font-size: 11px; cursor: pointer; padding: 2px 4px; border-radius: 4px; line-height: 1; vertical-align: middle; }
-.row-delete-btn:hover { color: var(--red); background: rgba(220,38,38,0.08); }
-.valuation-row:hover > div { background: #fff5f0; }
 .full-width-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
 .report-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .report-row:last-child { border-bottom: none; }
@@ -186,3 +181,8 @@ select option { background: var(--bg2); }
 .tag-dropdown-item.active .tag-hint { color: var(--accent2); }
 .tag-dropdown-divider { padding: 5px 14px 3px; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; background: var(--bg3); }
 .tag-hint-text { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+/* ── memo block ── */
+.memo-block { margin-top: 14px; padding: 10px 12px; background: var(--bg3); border-radius: 8px; border-left: 3px solid var(--border2); }
+.memo-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.memo-content { white-space: pre-wrap; word-break: keep-all; overflow-wrap: break-word; line-height: 1.65; color: var(--text2); font-size: 13px; }
