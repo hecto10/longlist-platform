@@ -411,7 +411,12 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                     <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{formatAmount(latestF.operating_profit)}</span></div>
                     <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{formatAmount(latestF.total_assets)}</span></div>
                     <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{formatAmount(latestF.net_assets)}</span></div>
-                    {latestF.memo && <div className="info-row"><span className="info-label">메모</span><span className="info-value" style={{whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6}}>{latestF.memo}</span></div>}
+                    {latestF.memo && (
+                      <div className="memo-block">
+                        <div className="memo-label">메모</div>
+                        <div className="memo-content">{latestF.memo}</div>
+                      </div>
+                    )}
                   </>
                 ) : <div style={{color:'var(--text3)',fontSize:13}}>재무실적 데이터가 없습니다</div>}
               </div>
