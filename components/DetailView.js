@@ -406,11 +406,19 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                 <div className="section-title">최신 재무실적</div>
                 {latestF ? (
                   <>
-                    <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestF.fiscal_date)}</span></div>
-                    <div className="info-row"><span className="info-label">매출</span><span className="info-value mono">{formatAmount(latestF.revenue)}</span></div>
-                    <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:latestF.operating_profit<0?'var(--red)':'var(--text)'}}>{formatAmount(latestF.operating_profit)}</span></div>
-                    <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono">{formatAmount(latestF.total_assets)}</span></div>
-                    <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono">{formatAmount(latestF.net_assets)}</span></div>
+                    {(() => {
+                      // 음수면 빨간색, 아니면 기본 텍스트 색상
+                      const numColor = v => v != null && Number(v) < 0 ? 'var(--red)' : 'var(--text)';
+                      return (
+                        <>
+                          <div className="info-row"><span className="info-label">기준일</span><span className="info-value mono">{fmtDate(latestF.fiscal_date)}</span></div>
+                          <div className="info-row"><span className="info-label">매출</span><span className="info-value mono" style={{color:numColor(latestF.revenue)}}>{formatAmount(latestF.revenue)}</span></div>
+                          <div className="info-row"><span className="info-label">영업이익</span><span className="info-value mono" style={{color:numColor(latestF.operating_profit)}}>{formatAmount(latestF.operating_profit)}</span></div>
+                          <div className="info-row"><span className="info-label">총자산</span><span className="info-value mono" style={{color:numColor(latestF.total_assets)}}>{formatAmount(latestF.total_assets)}</span></div>
+                          <div className="info-row"><span className="info-label">순자산</span><span className="info-value mono" style={{color:numColor(latestF.net_assets)}}>{formatAmount(latestF.net_assets)}</span></div>
+                        </>
+                      );
+                    })()}
                     {latestF.memo && (
                       <div className="memo-block">
                         <div className="memo-label">메모</div>
