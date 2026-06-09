@@ -1,6 +1,6 @@
 // ─── SHAREHOLDER BULK MODAL ───────────────────────────────
 function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }) {
-  const { useState } = React;
+  const { useState, useEffect } = React;
 
   const emptyRow = () => ({
     _id: Math.random().toString(36).slice(2),
@@ -15,12 +15,32 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
   const [source,          setSource]           = useState('');
   const [rows,            setRows]             = useState([emptyRow()]);
   const [loading,         setLoading]          = useState(false);
+  // existingSnapshot: null(미조회) | false(없음) | object(있음)
+  const [existingSnapshot, setExistingSnapshot] = useState(null);
+  const [snapLoading,     setSnapLoading]      = useState(false);
 
-  const tc = Number(totalCommon)    || 0;
-  const tp = Number(totalPreferred) || 0;
+  const tc = existingSnapshot ? (existingSnapshot.total_common_shares || 0) : (Number(totalCommon) || 0);
+  const tp = existingSnapshot ? (existingSnapshot.total_preferred_shares || 0) : (Number(totalPreferred) || 0);
   const ta = tc + tp;
 
-  // 지분율 실시간 계산
+  // 기준일 변경 시 기존 snapshot 조회
+  useEffect(() => {
+    if (!asOfDate) { setExistingSnapshot(null); return; }
+    setSnapLoading(true);
+    companyService.fetchSnapshotByDate(company.id, asOfDate)
+      .then(snap => {
+        setExistingSnapshot(snap || false);
+        if (snap) {
+          setTotalCommon(String(snap.total_common_shares || ''));
+          setTotalPreferred(String(snap.total_preferred_shares || ''));
+        }
+      })
+      .catch(() => setExistingSnapshot(false))
+      .finally(() => setSnapLoading(false));
+  }, [asOfDate]);
+
+  const isAddMode = !!existingSnapshot; // 누락 주주 추가 모드
+
   function calcRatios(r) {
     const cs = Number(r.common_shares)    || 0;
     const ps = Number(r.preferred_shares) || 0;
@@ -34,10 +54,9 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
   function setRow(id, key, val) {
     setRows(prev => prev.map(r => r._id === id ? { ...r, [key]: val } : r));
   }
-  function addRow()    { setRows(prev => [...prev, emptyRow()]); }
+  function addRow()      { setRows(prev => [...prev, emptyRow()]); }
   function removeRow(id) { setRows(prev => prev.filter(r => r._id !== id)); }
 
-  // validation
   function validate() {
     const errors = [], warnings = [];
     if (!asOfDate) { errors.push('기준일을 입력해주세요'); }
@@ -53,24 +72,23 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
       const label = `${i+1}행`;
       if (!r.shareholder_name.trim()) errors.push(`${label}: 주주명 필수`);
       if (!r.shareholder_type)        errors.push(`${label}: 구분 필수`);
-
       if (r.shareholder_name.trim()) {
         if (existingNames.has(r.shareholder_name.trim()))
-          warnings.push(`${label}: "${r.shareholder_name}" 동일 기준일에 이미 존재`);
+          errors.push(`${label}: "${r.shareholder_name}" 동일 기준일에 이미 존재 (저장 불가)`);
         if (namesInModal.includes(r.shareholder_name.trim()))
           warnings.push(`${label}: "${r.shareholder_name}" 모달 내 중복`);
         namesInModal.push(r.shareholder_name.trim());
       }
     });
 
-    if (tc === 0 && tp === 0 && rows.some(r => Number(r.common_shares)||Number(r.preferred_shares)))
+    if (tc === 0 && tp === 0 && rows.some(r => Number(r.common_shares) || Number(r.preferred_shares)))
       warnings.push('총 발행주식수가 0이라 지분율이 계산되지 않습니다');
 
     const totalRatio = rows.reduce((sum, r) => {
       const { tr } = calcRatios(r);
       return sum + (Number(tr) || 0);
     }, 0);
-    if (totalRatio > 100.01) warnings.push(`지분율 합계 ${totalRatio.toFixed(2)}% — 100% 초과`);
+    if (!isAddMode && totalRatio > 100.01) warnings.push(`지분율 합계 ${totalRatio.toFixed(2)}% — 100% 초과`);
 
     return { errors, warnings };
   }
@@ -84,7 +102,7 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
     }
     setLoading(true);
     try {
-      await companyService.insertSnapshotWithShareholders(
+      await companyService.upsertSnapshotWithShareholders(
         {
           company_id:             Number(company.id),
           as_of_date:             asOfDate,
@@ -96,8 +114,7 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
       );
       onSave(); onClose();
     } catch(e) {
-      if (e.message?.includes('unique')) alert('저장 실패: 동일 기준일 snapshot이 이미 존재합니다');
-      else alert('저장 실패: ' + e.message);
+      alert('저장 실패: ' + e.message);
     } finally { setLoading(false); }
   }
 
@@ -113,8 +130,8 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
         </div>
         <div className="modal-body">
 
-          {/* 기준일 + 총 발행주식수 */}
-          <div style={{ background: 'var(--bg3)', borderRadius: 8, padding: '14px 16px', marginBottom: 16 }}>
+          {/* 기준 정보 */}
+          <div style={{ background: 'var(--bg3)', borderRadius: 8, padding: '14px 16px', marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>기준 정보</div>
             <div className="form-row">
               <div className="form-group">
@@ -122,17 +139,33 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
                 <input type="date" className="form-input" value={asOfDate} onChange={e => setAsOfDate(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">총 보통주 발행수</label>
-                <input type="number" className="form-input" placeholder="0" value={totalCommon} onChange={e => setTotalCommon(e.target.value)} />
+                <label className="form-label">
+                  총 보통주 발행수
+                  {isAddMode && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text3)' }}>(기존값)</span>}
+                </label>
+                <input type="number" className="form-input" placeholder="0"
+                  value={isAddMode ? tc : totalCommon}
+                  readOnly={isAddMode}
+                  style={{ background: isAddMode ? 'var(--bg3)' : undefined, cursor: isAddMode ? 'not-allowed' : undefined }}
+                  onChange={e => !isAddMode && setTotalCommon(e.target.value)} />
               </div>
               <div className="form-group">
-                <label className="form-label">총 우선주 발행수</label>
-                <input type="number" className="form-input" placeholder="0" value={totalPreferred} onChange={e => setTotalPreferred(e.target.value)} />
+                <label className="form-label">
+                  총 우선주 발행수
+                  {isAddMode && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--text3)' }}>(기존값)</span>}
+                </label>
+                <input type="number" className="form-input" placeholder="0"
+                  value={isAddMode ? tp : totalPreferred}
+                  readOnly={isAddMode}
+                  style={{ background: isAddMode ? 'var(--bg3)' : undefined, cursor: isAddMode ? 'not-allowed' : undefined }}
+                  onChange={e => !isAddMode && setTotalPreferred(e.target.value)} />
               </div>
-              <div className="form-group">
-                <label className="form-label">출처</label>
-                <input className="form-input" placeholder="예: DART, CRETOP" value={source} onChange={e => setSource(e.target.value)} />
-              </div>
+              {!isAddMode && (
+                <div className="form-group">
+                  <label className="form-label">출처</label>
+                  <input className="form-input" placeholder="예: DART, CRETOP" value={source} onChange={e => setSource(e.target.value)} />
+                </div>
+              )}
             </div>
             {ta > 0 && (
               <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
@@ -142,6 +175,28 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
               </div>
             )}
           </div>
+
+          {/* 모드 안내 배너 */}
+          {snapLoading && (
+            <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--bg3)', fontSize: 12, color: 'var(--text3)' }}>
+              기준일 확인 중...
+            </div>
+          )}
+          {!snapLoading && isAddMode && (
+            <div style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 8,
+              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+              fontSize: 12, lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 600, color: 'var(--amber)', marginBottom: 2 }}>누락 주주를 추가하는 모드입니다.</div>
+              <div style={{ color: 'var(--text3)' }}>기존 주주현황 수정은 지원하지 않습니다.</div>
+            </div>
+          )}
+          {!snapLoading && asOfDate && !isAddMode && existingSnapshot === false && (
+            <div style={{ marginBottom: 14, padding: '10px 16px', borderRadius: 8,
+              background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)',
+              fontSize: 12, color: 'var(--text3)' }}>
+              ✨ 신규 기준일입니다. 주주현황을 새로 등록합니다.
+            </div>
+          )}
 
           {/* 주주 입력 테이블 */}
           <div style={{ overflowX: 'auto', marginBottom: 12 }}>
@@ -156,21 +211,18 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
               <tbody>
                 {rows.map((r, i) => {
                   const { cr, pr, tr } = calcRatios(r);
-                  const { warnings: rowWarns } = (() => {
-                    const w = [];
-                    const existingNames = new Set((existingShareholders||[]).filter(s=>s.as_of_date===asOfDate).map(s=>s.shareholder_name));
-                    if (r.shareholder_name && existingNames.has(r.shareholder_name.trim())) w.push('기존 중복');
-                    if (r.shareholder_name && rows.filter(x=>x._id!==r._id&&x.shareholder_name.trim()===r.shareholder_name.trim()).length) w.push('내부 중복');
-                    return { warnings: w };
-                  })();
-                  const hasWarn = rowWarns.length > 0;
+                  const existingNames = new Set((existingShareholders||[]).filter(s=>s.as_of_date===asOfDate).map(s=>s.shareholder_name));
+                  const isDupExisting = r.shareholder_name && existingNames.has(r.shareholder_name.trim());
+                  const isDupInternal = r.shareholder_name && rows.filter(x=>x._id!==r._id&&x.shareholder_name.trim()===r.shareholder_name.trim()).length > 0;
+                  const rowBg = isDupExisting ? 'rgba(220,38,38,0.04)' : isDupInternal ? 'rgba(245,158,11,0.04)' : 'transparent';
                   return (
-                    <tr key={r._id} style={{ borderBottom: '1px solid var(--border)', background: hasWarn ? 'rgba(245,158,11,0.04)' : 'transparent' }}>
+                    <tr key={r._id} style={{ borderBottom: '1px solid var(--border)', background: rowBg }}>
                       <td style={{ padding: '4px 6px' }}>
                         <input className="form-input" style={{ fontSize: 12, padding: '5px 8px' }}
                           placeholder="주주명" value={r.shareholder_name}
                           onChange={e => setRow(r._id, 'shareholder_name', e.target.value)} />
-                        {hasWarn && <div style={{ fontSize: 10, color: 'var(--amber)', marginTop: 2 }}>⚠️ {rowWarns.join(', ')}</div>}
+                        {isDupExisting && <div style={{ fontSize: 10, color: 'var(--red)', marginTop: 2 }}>❌ 이미 존재</div>}
+                        {!isDupExisting && isDupInternal && <div style={{ fontSize: 10, color: 'var(--amber)', marginTop: 2 }}>⚠️ 내부 중복</div>}
                       </td>
                       <td style={{ padding: '4px 6px' }}>
                         <select className="form-input" style={{ fontSize: 12, padding: '5px 8px' }}
@@ -190,9 +242,7 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
                           onChange={e => setRow(r._id, 'preferred_shares', e.target.value)} />
                       </td>
                       <td style={{ padding: '4px 6px', minWidth: 90, textAlign: 'center', fontFamily: 'MaruBuri,sans-serif', fontSize: 12 }}>
-                        {tr !== null ? (
-                          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{tr}%</span>
-                        ) : <span style={{ color: 'var(--text3)' }}>—</span>}
+                        {tr !== null ? <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{tr}%</span> : <span style={{ color: 'var(--text3)' }}>—</span>}
                         {cr !== null && <div style={{ fontSize: 10, color: 'var(--text3)' }}>보통 {cr}%</div>}
                         {pr !== null && <div style={{ fontSize: 10, color: 'var(--text3)' }}>우선 {pr}%</div>}
                       </td>
@@ -223,7 +273,6 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
             + 주주 추가
           </button>
 
-          {/* validation 요약 */}
           {(errors.length > 0 || warnings.length > 0) && (
             <div style={{ marginBottom: 12, fontSize: 12 }}>
               {errors.map((e,i)   => <div key={i} style={{ color: 'var(--red)',   marginBottom: 2 }}>❌ {e}</div>)}
@@ -234,7 +283,9 @@ function ShareholderBulkModal({ company, existingShareholders, onClose, onSave }
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>취소</button>
             <button className="btn btn-primary" onClick={submit} disabled={loading || hasError}>
-              {loading ? '저장 중...' : `${rows.filter(r=>r.shareholder_name.trim()).length}명 저장`}
+              {loading ? '저장 중...' : isAddMode
+                ? `주주 ${rows.filter(r=>r.shareholder_name.trim()).length}명 추가`
+                : `${rows.filter(r=>r.shareholder_name.trim()).length}명 저장`}
             </button>
           </div>
         </div>
