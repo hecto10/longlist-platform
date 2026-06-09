@@ -419,6 +419,19 @@ const companyService = {
     return data || [];
   },
 
+  // 기준일로 기존 snapshot 조회 (없으면 null)
+  async fetchSnapshotByDate(companyId, asOfDate) {
+    const { data, error } = await supabase
+      .from('shareholder_snapshot')
+      .select('*')
+      .eq('company_id', Number(companyId))
+      .eq('as_of_date', asOfDate)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  },
+
   // 특정 snapshot의 주주 목록 조회 (snapshot JOIN으로 orphan 방어)
   async fetchShareholders(companyId) {
     const { data, error } = await supabase
@@ -433,44 +446,70 @@ const companyService = {
     return data || [];
   },
 
-  // snapshot + 주주 일괄 저장 (bulk insert)
-  async insertSnapshotWithShareholders(snapshotPayload, shareholderRows) {
-    // 1. snapshot insert → id 반환
-    const { data: snap, error: snapErr } = await supabase
-      .from('shareholder_snapshot')
-      .insert(snapshotPayload)
-      .select()
-      .single();
-    if (snapErr) throw snapErr;
+  // snapshot + 주주 일괄 저장/추가 (upsert)
+  // - 기존 snapshot 있으면 기존 id 사용 (총 발행주식수 변경 없음)
+  // - 없으면 신규 snapshot 생성
+  // - 중복 shareholder_name 있으면 오류
+  async upsertSnapshotWithShareholders(snapshotPayload, shareholderRows) {
+    // 1. 기존 snapshot 조회
+    let snap = await this.fetchSnapshotByDate(snapshotPayload.company_id, snapshotPayload.as_of_date);
+
+    if (!snap) {
+      // 2a. 신규 snapshot 생성
+      const { data, error } = await supabase
+        .from('shareholder_snapshot')
+        .insert(snapshotPayload)
+        .select()
+        .single();
+      if (error) throw error;
+      snap = data;
+    }
+    // 2b. 기존 snapshot 사용 — total_shares 변경 없음
+
+    // 3. 중복 주주명 검사
+    const { data: existingNames } = await supabase
+      .from('shareholders')
+      .select('shareholder_name')
+      .eq('snapshot_id', snap.id)
+      .is('deleted_at', null);
+
+    const existingSet = new Set((existingNames || []).map(r => r.shareholder_name));
+    const dupNames = shareholderRows
+      .map(r => r.shareholder_name?.trim())
+      .filter(name => name && existingSet.has(name));
+
+    if (dupNames.length > 0) {
+      throw new Error(`동일 기준일에 이미 존재하는 주주: "${dupNames.join('", "')}"`);
+    }
 
     if (!shareholderRows.length) return snap;
 
-    // 2. 지분율 자동 계산 후 shareholders insert
+    // 4. 지분율 계산 후 shareholders INSERT
     const totalCommon    = snap.total_common_shares    || 0;
     const totalPreferred = snap.total_preferred_shares || 0;
     const totalAll       = totalCommon + totalPreferred;
 
     const rows = shareholderRows.map(r => {
-      const cs  = Number(r.common_shares)    || 0;
-      const ps  = Number(r.preferred_shares) || 0;
-      const ts  = cs + ps;
-      const cr  = totalCommon    > 0 ? Math.round(cs / totalCommon    * 10000) / 100 : null;
-      const pr  = totalPreferred > 0 ? Math.round(ps / totalPreferred * 10000) / 100 : null;
-      const tr  = totalAll       > 0 ? Math.round(ts / totalAll       * 10000) / 100 : null;
+      const cs = Number(r.common_shares)    || 0;
+      const ps = Number(r.preferred_shares) || 0;
+      const ts = cs + ps;
+      const cr = totalCommon    > 0 ? Math.round(cs / totalCommon    * 10000) / 100 : null;
+      const pr = totalPreferred > 0 ? Math.round(ps / totalPreferred * 10000) / 100 : null;
+      const tr = totalAll       > 0 ? Math.round(ts / totalAll       * 10000) / 100 : null;
       return {
-        snapshot_id:                    snap.id,
-        company_id:                     snap.company_id,
-        as_of_date:                     snap.as_of_date,
-        shareholder_name:               r.shareholder_name.trim(),
-        shareholder_type:               r.shareholder_type               || null,
-        common_shares:                  cs || null,
-        preferred_shares:               ps || null,
-        total_shares:                   ts || null,
-        common_ratio:                   cr,
-        preferred_ratio:                pr,
-        total_ratio:                    tr,
-        relation_to_major_shareholder:  r.relation_to_major_shareholder  || null,
-        note:                           r.note                           || null,
+        snapshot_id:                   snap.id,
+        company_id:                    snap.company_id,
+        as_of_date:                    snap.as_of_date,
+        shareholder_name:              r.shareholder_name.trim(),
+        shareholder_type:              r.shareholder_type              || null,
+        common_shares:                 cs || null,
+        preferred_shares:              ps || null,
+        total_shares:                  ts || null,
+        common_ratio:                  cr,
+        preferred_ratio:               pr,
+        total_ratio:                   tr,
+        relation_to_major_shareholder: r.relation_to_major_shareholder || null,
+        note:                          r.note                          || null,
       };
     });
 
