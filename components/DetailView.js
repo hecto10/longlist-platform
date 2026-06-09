@@ -735,32 +735,40 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         <div className="full-width-section">
           <div className="section-title">기업가치 이력 (누적)</div>
           {valuations.length > 0 ? (() => {
+            // 전체 이력 (날짜순) — 테이블에 모두 표시
             const sorted = [...valuations].sort((a,b) => new Date(a.valuation_date) - new Date(b.valuation_date));
-            const latest = sorted[sorted.length-1];
-            const maxVal = Math.max(...sorted.map(v => Number(v.valuation)||0), 1);
+            // 기업가치 값이 있는 row만 — 차트·요약·건수에 사용
+            const hasVal = v => v.valuation != null && v.valuation !== '' && Number(v.valuation) > 0;
+            const chartSorted = sorted.filter(hasVal);
+            const latest  = chartSorted[chartSorted.length - 1] || null;
+            const maxVal  = chartSorted.length ? Math.max(...chartSorted.map(v => Number(v.valuation)), 1) : 1;
             const magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
             const ti = maxVal <= magnitude*2 ? magnitude/2 : maxVal <= magnitude*5 ? magnitude : magnitude*2;
             const ticks = [];
             for(let v=ti; v<=maxVal*1.15; v+=ti) ticks.push(v);
             const yAxisW = 56; const chartH = 160; const padT = 20; const padB = 28; const padR = 12;
             const innerH = chartH - padT - padB;
-            const colW = Math.max(60, Math.floor(500 / sorted.length));
-            const svgW = Math.max(sorted.length * colW + yAxisW + padR, 400);
+            const colW = Math.max(60, Math.floor(500 / Math.max(chartSorted.length, 1)));
+            const svgW = Math.max(chartSorted.length * colW + yAxisW + padR, 400);
             const barW = Math.min(32, colW - 16);
             return (
               <div>
+                {/* ── 상단 요약 (valuation 있는 것만) ── */}
                 <div style={{display:'flex',gap:32,marginBottom:20,paddingBottom:16,borderBottom:'1px solid var(--border)'}}>
                   <div>
                     <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>최신 기업가치</div>
-                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--accent)'}}>{formatAmount(latest.valuation)}</div>
-                    <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{fmtDate(latest.valuation_date)} · {latest.memo||'—'}</div>
+                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--accent)'}}>{latest ? formatAmount(latest.valuation) : '—'}</div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{latest ? fmtDate(latest.valuation_date) + ' · ' + (latest.memo||'—') : '—'}</div>
                   </div>
                   <div>
                     <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>기업가치 건수</div>
-                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--text)'}}>{sorted.length}건</div>
+                    <div style={{fontSize:20,fontWeight:700,fontFamily:'MaruBuri,sans-serif',color:'var(--text)'}}>{chartSorted.length}건</div>
+                    {chartSorted.length < sorted.length && (
+                      <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>전체 {sorted.length}건 중 값 있음</div>
+                    )}
                   </div>
-                  {sorted.length >= 2 && (() => {
-                    const first = sorted[0];
+                  {chartSorted.length >= 2 && (() => {
+                    const first = chartSorted[0];
                     const chg = calcChange(latest.valuation, first.valuation);
                     return (
                       <div>
@@ -773,6 +781,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                     );
                   })()}
                 </div>
+                {/* ── 차트 (valuation 있는 row만) ── */}
+                {chartSorted.length > 0 && (
                 <div style={{overflowX:'auto'}}>
                   <svg width="100%" viewBox={`0 0 ${svgW} ${chartH}`} style={{display:'block',minWidth:300}}>
                     {ticks.map(v => {
@@ -785,12 +795,12 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       );
                     })}
                     <line x1={yAxisW} y1={padT+innerH} x2={svgW-padR} y2={padT+innerH} stroke="var(--border2)" strokeWidth="1"/>
-                    {sorted.map((v, i) => {
-                      const val = Number(v.valuation)||0;
+                    {chartSorted.map((v, i) => {
+                      const val = Number(v.valuation);
                       const bH = Math.max(Math.round((val/maxVal/1.15)*innerH), 2);
                       const colX = yAxisW + i*colW + (colW-barW)/2;
                       const bY = padT + innerH - bH;
-                      const isLatest = i === sorted.length-1;
+                      const isLatest = i === chartSorted.length-1;
                       return (
                         <g key={v.id}>
                           <rect x={colX} y={bY} width={barW} height={bH} fill={isLatest ? 'var(--accent)' : 'rgba(255,106,0,0.35)'} rx="3"/>
@@ -804,6 +814,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                     })}
                   </svg>
                 </div>
+                )}
                 <div style={{marginTop:20,border:'1px solid var(--border)',borderRadius:8,overflow:'hidden'}}>
                   <div style={{display:'grid',gridTemplateColumns:'150px 100px 80px 160px 1fr',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
                     {['기준일','기업가치','P/E','거래 유형','출처'].map((h,i)=>(
@@ -834,8 +845,8 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                           {isAdmin && <button className="row-edit-btn" style={{marginLeft:6}} onClick={()=>openModal('valuation',v)}>✎</button>}
                           {isAdmin && <button className="row-delete-btn" style={{marginLeft:2}} onClick={()=>setModal({type:'delete',record:v,tableType:'valuations'})}>🗑</button>}
                         </div>
-                        <div style={{...cs,fontWeight:500}}>{formatAmount(v.valuation)}</div>
-                        <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : 'N/A'}</div>
+                        <div style={{...cs,fontWeight:500}}>{v.valuation != null && v.valuation !== '' && Number(v.valuation) > 0 ? formatAmount(v.valuation) : <span style={{color:'var(--text3)'}}>—</span>}</div>
+                        <div style={{...cs,color:pe?'var(--text)':'var(--text3)'}}>{pe ? pe+'x' : '—'}</div>
                         <div style={cs}>{dealType}</div>
                         <div style={{...cs}}>
                           {v.source_link
