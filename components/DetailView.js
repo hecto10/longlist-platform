@@ -569,7 +569,9 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                     const opYoY  = yoy?.operating_profit != null && yoy.operating_profit !== 0
                       ? calcChange(f.operating_profit, yoy.operating_profit) : null;
                     return (
-                      <div key={f.id} style={{display:'flex',alignItems:'flex-start',gap:12,padding:'12px 16px',background:'var(--bg3)',borderRadius:8,border:'1px solid var(--border)'}}>
+                      <div key={f.id} style={{display:'flex',flexDirection:'column',gap:0,padding:'12px 16px',background:'var(--bg3)',borderRadius:8,border:'1px solid var(--border)'}}>
+                        {/* 상단 행: 기간 + 수치 + 버튼 */}
+                        <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
                         {/* 기간 레이블 */}
                         <div style={{minWidth:68,flexShrink:0}}>
                           <div style={{fontSize:13,fontWeight:700,color:'var(--accent)'}}>{year} {label}</div>
@@ -612,13 +614,19 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                               </div>
                             </div>
                           )}
-                          {f.memo && <div style={{fontSize:11,color:'var(--text3)',fontStyle:'italic',whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6,maxWidth:200}}>"{f.memo}"</div>}
                         </div>
                         {/* 수정/삭제 */}
                         {isAdmin && (
                           <div style={{display:'flex',gap:4,flexShrink:0}}>
                             <button className="row-edit-btn" onClick={e=>{e.stopPropagation();openModal('financial',f);}}>✎</button>
                             <button className="row-delete-btn" onClick={e=>{e.stopPropagation();setModal({type:'delete',record:f,tableType:'financials'});}}>🗑</button>
+                          </div>
+                        )}
+                        </div>
+                        {/* 하단 행: 메모 전체 폭 */}
+                        {f.memo && (
+                          <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)',fontSize:12,color:'var(--text3)',fontStyle:'italic',whiteSpace:'normal',wordBreak:'keep-all',overflowWrap:'break-word',lineHeight:1.6}}>
+                            "{f.memo}"
                           </div>
                         )}
                       </div>
