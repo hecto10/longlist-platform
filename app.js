@@ -47,6 +47,11 @@ function App() {
     return () => sub.unsubscribe();
   }, []);
 
+  // 기업 상세 진입 시 항상 최상단으로
+  React.useEffect(() => {
+    if (selected) window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [selected]);
+
   async function loadProfile(userId) {
     try {
       const p = await authService.getProfile(userId);
