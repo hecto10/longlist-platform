@@ -531,7 +531,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
         // 최근 실적 업데이트: 전체 financials fiscal_date 최신순 최대 3건
         const recentSorted = [...financials]
           .sort((a,b) => new Date(b.fiscal_date) - new Date(a.fiscal_date))
-          .slice(0, 3);
+          .slice(0, 1);
         // 연간: 오래된→최신 (차트용)
         const annualSorted  = [...annualF].reverse();
         const revenues = annualSorted.map(f => Number(f.revenue)||0);
@@ -568,7 +568,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
             <div className="full-width-section">
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
                 <div className="section-title" style={{marginBottom:0}}>최근 실적 업데이트</div>
-                <span style={{fontSize:11,color:'var(--text3)'}}>연간 · 분기 전체 실적 · 최신순</span>
+                <span style={{fontSize:11,color:'var(--text3)'}}>최신 실적 1건</span>
               </div>
               {recentSorted.length > 0 ? (
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
