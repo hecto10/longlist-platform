@@ -534,8 +534,13 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
           .slice(0, 1);
         // 연간: 오래된→최신 (차트용)
         const annualSorted  = [...annualF].reverse();
-        const revenues = annualSorted.map(f => Number(f.revenue)||0);
-        const ops      = annualSorted.map(f => Number(f.operating_profit)||0);
+        // 차트용: 최신 5개만 (오름차순)
+        const annualChartData = [...annualF]
+          .sort((a,b) => new Date(b.fiscal_date) - new Date(a.fiscal_date))
+          .slice(0, 5)
+          .reverse();
+        const revenues = annualChartData.map(f => Number(f.revenue)||0);
+        const ops      = annualChartData.map(f => Number(f.operating_profit)||0);
 
         // 전년동기 대비 계산: 같은 period_type 중 1년 전 row 찾기 (연간/분기 모두)
         function findYoY(f) {
@@ -703,7 +708,7 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                       const opNegMax = Math.abs(Math.min(...ops.filter(v=>v<0), 0));
                       const sharedPosMax = Math.max(Math.max(...revenues,1), opPosMax);
                       const s0 = { posMax: sharedPosMax, negMax: opNegMax };
-                      return <MiniChart data={[revenues, ops]} scales={[s0,s0]} color="var(--accent)" color2="rgba(255,106,0,0.38)" xLabels={annualSorted.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
+                      return <MiniChart data={[revenues, ops]} scales={[s0,s0]} color="var(--accent)" color2="rgba(255,106,0,0.38)" xLabels={annualChartData.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
                     })()}
                     <div style={{display:'flex',gap:14,marginTop:4,fontSize:11,color:'var(--text2)',justifyContent:'center'}}>
                       <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'var(--accent)',display:'inline-block'}}/> 매출</span>
@@ -744,11 +749,11 @@ function DetailView({ company: initialCompany, onBack, isAdmin = false, session,
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>총자산 / 순자산 추이</div>
                     {(() => {
-                      const tas = annualSorted.map(f=>Number(f.total_assets)||0);
-                      const nas = annualSorted.map(f=>Number(f.net_assets)||0);
+                      const tas = annualChartData.map(f=>Number(f.total_assets)||0);
+                      const nas = annualChartData.map(f=>Number(f.net_assets)||0);
                       const posMax = Math.max(...tas,...nas.filter(v=>v>0),1);
                       const negMax = Math.abs(Math.min(...nas.filter(v=>v<0),0));
-                      return <MiniChart data={[tas,nas]} scales={[{posMax,negMax},{posMax,negMax}]} color="var(--teal)" color2="rgba(13,148,136,0.35)" xLabels={annualSorted.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
+                      return <MiniChart data={[tas,nas]} scales={[{posMax,negMax},{posMax,negMax}]} color="var(--teal)" color2="rgba(13,148,136,0.35)" xLabels={annualChartData.map(f=>new Date(f.fiscal_date).getFullYear())}/>;
                     })()}
                     <div style={{display:'flex',gap:14,marginTop:4,fontSize:11,color:'var(--text2)',justifyContent:'center'}}>
                       <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'var(--teal)',display:'inline-block'}}/> 총자산</span>
