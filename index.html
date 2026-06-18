@@ -22,50 +22,63 @@
 <body>
 <div id="root"></div>
 
-<!-- 서비스 레이어 -->
+<!-- ── 서비스 레이어 ── -->
 <script type="text/babel" src="services/supabase.js"></script>
-<script type="text/babel" src="services/notificationService.js"></script>
 <script type="text/babel" src="services/authService.js"></script>
 <script type="text/babel" src="services/companyService.js"></script>
-<script type="text/babel" src="services/uploadService.js"></script>
-<script type="text/babel" src="services/dashboardService.js"></script>
 <script type="text/babel" src="services/requestService.js"></script>
+<script type="text/babel" src="services/notificationService.js"></script>
+<script type="text/babel" src="services/dashboardService.js"></script>
+<script type="text/babel" src="services/uploadService.js"></script>
 
-<!-- 공통 유틸 / 컴포넌트 -->
+<!-- ── 공통 유틸 / UI 컴포넌트 ── -->
 <script type="text/babel" src="components/Toast.js"></script>
 <script type="text/babel" src="components/TagInput.js"></script>
 <script type="text/babel" src="components/MiniChart.js"></script>
+<script type="text/babel" src="components/CompanySearchCell.js"></script>
+<script type="text/babel" src="components/RequestLinkSection.js"></script>
+
+<!-- ── 모달: 재무/기업가치/보고 ── -->
 <script type="text/babel" src="components/FinancialModal.js"></script>
 <script type="text/babel" src="components/ValuationModal.js"></script>
 <script type="text/babel" src="components/ReportModal.js"></script>
-<script type="text/babel" src="components/ExcelUpload.js"></script>
-<script type="text/babel" src="components/ExcelUploadV2.js"></script>
-<script type="text/babel" src="components/CompanySearchCell.js"></script>
-<script type="text/babel" src="components/ValuationBulkView.js"></script>
-<script type="text/babel" src="components/ReportBulkView.js"></script>
-<script type="text/babel" src="components/DataManagementView.js"></script>
-<script type="text/babel" src="components/RequestLinkSection.js"></script>
-<script type="text/babel" src="components/AddCompanyModal.js"></script>
-<script type="text/babel" src="components/EditCompanyModal.js"></script>
-<script type="text/babel" src="components/NotificationBell.js"></script>
 <script type="text/babel" src="components/DeleteConfirmModal.js"></script>
 <script type="text/babel" src="components/SoftDeleteModal.js"></script>
+
+<!-- ── 모달: 임직원/주주/이사회 ── -->
 <script type="text/babel" src="components/EmployeeHistoryModal.js"></script>
 <script type="text/babel" src="components/ShareholderModal.js"></script>
 <script type="text/babel" src="components/BoardMemberModal.js"></script>
 <script type="text/babel" src="components/ShareholderBulkModal.js"></script>
 <script type="text/babel" src="components/BoardMemberBulkModal.js"></script>
+
+<!-- ── 모달: 기업 추가/수정 ── -->
+<script type="text/babel" src="components/AddCompanyModal.js"></script>
+<script type="text/babel" src="components/EditCompanyModal.js"></script>
 <script type="text/babel" src="components/AddCompanyRequestModal.js"></script>
 <script type="text/babel" src="components/UpdateRequestModal.js"></script>
-<script type="text/babel" src="components/RequestManagementView.js"></script>
-<script type="text/babel" src="components/MyRequestsView.js"></script>
+
+<!-- ── 알림 ── -->
+<script type="text/babel" src="components/NotificationBell.js"></script>
+
+<!-- ── 뷰: 인증/관리 ── -->
 <script type="text/babel" src="components/LoginView.js"></script>
 <script type="text/babel" src="components/UserManagementView.js"></script>
 <script type="text/babel" src="components/AdminDashboard.js"></script>
+<script type="text/babel" src="components/RequestManagementView.js"></script>
+<script type="text/babel" src="components/MyRequestsView.js"></script>
+
+<!-- ── 뷰: 데이터 관리 ── -->
+<script type="text/babel" src="components/ExcelUploadV2.js"></script>
+<script type="text/babel" src="components/ValuationBulkView.js"></script>
+<script type="text/babel" src="components/ReportBulkView.js"></script>
+<script type="text/babel" src="components/DataManagementView.js"></script>
+
+<!-- ── 뷰: 메인 ── -->
 <script type="text/babel" src="components/DetailView.js"></script>
 <script type="text/babel" src="components/ListView.js"></script>
 
-<!-- 앱 진입점 -->
+<!-- ── 앱 진입점 ── -->
 <script type="text/babel" src="app.js"></script>
 </body>
 </html>
