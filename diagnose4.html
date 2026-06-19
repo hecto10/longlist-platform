@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<title>실행 순서 진단 v4</title>
+<style>
+body { font-family: monospace; padding: 20px; background: #0f0f0f; color: #e0e0e0; }
+h2 { color: #ff6a00; }
+.ok   { color: #4ade80; }
+.err  { color: #f87171; }
+.warn { color: #fbbf24; }
+pre { margin: 1px 0 1px 16px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+.section { margin: 16px 0; border-left: 3px solid #444; padding-left: 12px; }
+</style>
+</head>
+<body>
+<h2>실행 순서 진단 — index.html 흐름 재현</h2>
+<div id="out"></div>
+
+<!-- index.html과 동일한 CDN -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+const out = document.getElementById('out');
+function sec(title) {
+  const d = document.createElement('div'); d.className = 'section';
+  d.innerHTML = `<b>${title}</b>`; out.appendChild(d); return d;
+}
+function ln(parent, cls, text) {
+  const p = document.createElement('pre'); p.className = cls;
+  p.textContent = text; parent.appendChild(p);
+}
+
+// ── 1단계: Babel 버전 + 병렬처리 여부 확인 ──────────
+const s1 = sec('1단계: Babel 버전 + 실행 방식');
+ln(s1, 'ok', `Babel 버전: ${window.Babel?.version}`);
+
+// Babel 7 vs 8 확인
+const babelMajor = parseInt((window.Babel?.version||'0').split('.')[0]);
+ln(s1, babelMajor >= 8 ? 'warn' : 'ok',
+  babelMajor >= 8
+    ? `⚠️  Babel ${babelMajor}.x — type="text/babel" 스크립트를 병렬 처리 (실행 순서 보장 안 됨)`
+    : `✅ Babel ${babelMajor}.x — 순차 처리`
+);
+
+// ── 2단계: index.html과 동일한 순서로 script 태그 삽입 ──
+const s2 = sec('2단계: index.html 순서대로 script 태그 실행 (오류 캐치)');
+
+const files = [
+  'services/supabase.js',
+  'services/authService.js',
+  'services/companyService.js',
+  'services/requestService.js',
+  'services/notificationService.js',
+  'services/dashboardService.js',
+  'services/uploadService.js',
+  'components/Toast.js',
+  'components/TagInput.js',
+  'components/MiniChart.js',
+  'components/CompanySearchCell.js',
+  'components/RequestLinkSection.js',
+  'components/FinancialModal.js',
+  'components/ValuationModal.js',
+  'components/ReportModal.js',
+  'components/DeleteConfirmModal.js',
+  'components/SoftDeleteModal.js',
+  'components/EmployeeHistoryModal.js',
+  'components/ShareholderModal.js',
+  'components/BoardMemberModal.js',
+  'components/ShareholderBulkModal.js',
+  'components/BoardMemberBulkModal.js',
+  'components/AddCompanyModal.js',
+  'components/EditCompanyModal.js',
+  'components/AddCompanyRequestModal.js',
+  'components/UpdateRequestModal.js',
+  'components/NotificationBell.js',
+  'components/LoginView.js',
+  'components/UserManagementView.js',
+  'components/AdminDashboard.js',
+  'components/RequestManagementView.js',
+  'components/MyRequestsView.js',
+  'components/ExcelUploadV2.js',
+  'components/ValuationBulkView.js',
+  'components/ReportBulkView.js',
+  'components/DataManagementView.js',
+  'components/DetailView.js',
+  'components/ListView.js',
+  'app.js',
+];
+
+// 전역 오류 캐치 — 어느 파일에서 오류가 나는지 기록
+window.__lastFile = null;
+window.addEventListener('error', (e) => {
+  ln(s2, 'err', `❌ 오류 발생!`);
+  ln(s2, 'err', `   파일: ${window.__lastFile || '알 수 없음'}`);
+  ln(s2, 'err', `   메시지: ${e.message}`);
+  if (e.filename) ln(s2, 'err', `   위치: ${e.filename}:${e.lineno}`);
+}, true);
+
+// 순차적으로 script 태그 삽입 (index.html 방식 재현)
+function injectNext(idx) {
+  if (idx >= files.length) {
+    ln(s2, 'ok', '모든 script 태그 삽입 완료');
+    const s3 = sec('3단계: 결론');
+    ln(s3, 'ok', '오류가 위에 표시됐다면 해당 파일이 원인입니다.');
+    ln(s3, 'warn', '오류가 없다면 → Babel 버전 병렬처리 타이밍 문제이거나 캐시 문제입니다.');
+    return;
+  }
+  const path = files[idx];
+  window.__lastFile = path;
+  const script = document.createElement('script');
+  script.type = 'text/babel';
+  script.src = '/' + path;
+  script.setAttribute('data-file', path);
+  script.onload  = () => { ln(s2, 'ok', `✅ ${path}`); injectNext(idx + 1); };
+  script.onerror = () => { ln(s2, 'warn', `⚠️ 로드 실패: ${path}`); injectNext(idx + 1); };
+  document.body.appendChild(script);
+}
+
+// CDN 로드 후 시작
+window.addEventListener('load', () => {
+  ln(s2, 'ok', 'DOM 로드 완료 — script 순차 삽입 시작');
+  injectNext(0);
+});
+</script>
+</body>
+</html>
