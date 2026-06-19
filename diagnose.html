@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/><title>Import 진단</title></head>
+<body>
+<h2>import/export 진단 결과</h2>
+<pre id="out" style="font-size:13px;line-height:1.6"></pre>
+<script>
+const files = [
+  'services/supabase.js',
+  'components/Toast.js',
+  'components/TagInput.js',
+  'components/MiniChart.js',
+];
+const out = document.getElementById('out');
+
+async function check(path) {
+  try {
+    const r = await fetch('/' + path);
+    const text = await r.text();
+    const lines = text.split('\n');
+    const hits = [];
+    lines.forEach((l, i) => {
+      if (/^\s*(import|export)\s/.test(l) && !l.trim().startsWith('//')) {
+        hits.push(`  줄 ${i+1}: ${l.trim().slice(0,100)}`);
+      }
+    });
+    if (hits.length) {
+      return `🔴 ${path}\n${hits.join('\n')}`;
+    } else {
+      return `✅ ${path} — import/export 없음`;
+    }
+  } catch(e) {
+    return `❓ ${path} — 로드 실패: ${e.message}`;
+  }
+}
+
+(async () => {
+  const results = await Promise.all(files.map(check));
+  out.textContent = results.join('\n\n');
+})();
+</script>
+</body>
+</html>
