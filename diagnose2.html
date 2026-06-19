@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>버전 진단</title></head>
+<body>
+<h2>라이브러리 버전 및 오류 진단</h2>
+<pre id="out" style="font-size:13px;line-height:1.8;font-family:monospace"></pre>
+<script>
+const out = document.getElementById('out');
+let log = '';
+const p = s => { log += s + '\n'; out.textContent = log; };
+
+// 1. 로드된 라이브러리 버전 확인
+p('=== 로드된 라이브러리 ===');
+p('React: '        + (window.React?.version || '없음'));
+p('ReactDOM: '     + (window.ReactDOM?.version || '없음'));
+p('Babel: '        + (window.Babel?.version || '없음'));
+p('supabase: '     + (window.supabase ? '로드됨' : '없음'));
+p('supabaseClient: '+ (window.supabaseJs ? '로드됨' : (typeof supabase !== 'undefined' ? '전역 있음' : '없음')));
+p('XLSX: '         + (window.XLSX?.version || '없음'));
+
+// 2. supabase 전역 객체 형태 확인
+p('\n=== supabase 전역 객체 키 ===');
+try {
+  const keys = Object.keys(window.supabase || {}).slice(0,10);
+  p(keys.length ? keys.join(', ') : '없음 또는 빈 객체');
+} catch(e) { p('오류: ' + e.message); }
+
+// 3. supabase createClient 동작 확인
+p('\n=== createClient 확인 ===');
+try {
+  if (window.supabase?.createClient) {
+    p('✅ window.supabase.createClient 존재');
+  } else if (window.supabaseJs?.createClient) {
+    p('✅ window.supabaseJs.createClient 존재');  
+  } else {
+    p('❌ createClient 없음');
+  }
+} catch(e) { p('오류: ' + e.message); }
+</script>
+</body>
+</html>
