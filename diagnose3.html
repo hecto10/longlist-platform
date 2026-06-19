@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<title>Longlist 오류 진단 v3</title>
+<style>
+  body { font-family: monospace; padding: 20px; background: #0f0f0f; color: #e0e0e0; }
+  h2 { color: #ff6a00; }
+  .ok   { color: #4ade80; }
+  .err  { color: #f87171; }
+  .warn { color: #fbbf24; }
+  pre { margin: 2px 0 2px 16px; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
+  .section { margin: 16px 0; border-left: 3px solid #444; padding-left: 12px; }
+</style>
+</head>
+<body>
+<h2>Longlist Platform — 오류 원인 진단</h2>
+<div id="out"></div>
+
+<script>
+/* ──────────────────────────────────────────────────
+   이 파일은 index.html 과 동일한 CDN을 로드한 뒤
+   각 내부 JS 파일을 fetch → Babel.transform 시도
+   → 오류 발생 파일을 특정합니다.
+   ────────────────────────────────────────────────── */
+
+const out = document.getElementById('out');
+function section(title) {
+  const d = document.createElement('div');
+  d.className = 'section';
+  d.innerHTML = `<b>${title}</b>`;
+  out.appendChild(d);
+  return d;
+}
+function line(parent, cls, text) {
+  const pre = document.createElement('pre');
+  pre.className = cls;
+  pre.textContent = text;
+  parent.appendChild(pre);
+}
+
+// ── 1단계: 라이브러리 로드 확인 ──────────────────
+const s1 = section('1단계: 라이브러리 로드 상태');
+
+async function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload  = () => res(true);
+    s.onerror = (e) => rej(new Error('로드 실패: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function run() {
+  // CDN 순서 그대로
+  const cdns = [
+    ['React 18',     'https://unpkg.com/react@18/umd/react.production.min.js'],
+    ['ReactDOM 18',  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'],
+    ['Babel Standalone', 'https://unpkg.com/@babel/standalone/babel.min.js'],
+    ['Supabase (jsdelivr 2.39.3)', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js'],
+    ['XLSX',         'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'],
+  ];
+  for (const [label, url] of cdns) {
+    try {
+      await loadScript(url);
+      line(s1, 'ok', `✅ ${label}`);
+    } catch(e) {
+      line(s1, 'err', `❌ ${label} — ${e.message}`);
+    }
+  }
+
+  line(s1, window.React    ? 'ok' : 'err', `React.version: ${window.React?.version || '없음'}`);
+  line(s1, window.Babel    ? 'ok' : 'err', `Babel.version: ${window.Babel?.version || '없음'}`);
+  line(s1, window.supabase ? 'ok' : 'err', `supabase.createClient: ${window.supabase?.createClient ? '있음' : '없음'}`);
+
+  if (!window.Babel?.transform) {
+    line(s1, 'err', '❌ Babel.transform 없음 — 이하 테스트 불가');
+    return;
+  }
+
+  // ── 2단계: 각 JS 파일을 fetch → Babel.transform ──
+  const s2 = section('2단계: 파일별 Babel 변환 테스트');
+
+  const files = [
+    'services/supabase.js',
+    'services/authService.js',
+    'services/companyService.js',
+    'services/requestService.js',
+    'services/notificationService.js',
+    'services/dashboardService.js',
+    'services/uploadService.js',
+    'components/Toast.js',
+    'components/TagInput.js',
+    'components/MiniChart.js',
+    'components/CompanySearchCell.js',
+    'components/RequestLinkSection.js',
+    'components/FinancialModal.js',
+    'components/ValuationModal.js',
+    'components/ReportModal.js',
+    'components/DeleteConfirmModal.js',
+    'components/SoftDeleteModal.js',
+    'components/EmployeeHistoryModal.js',
+    'components/ShareholderModal.js',
+    'components/BoardMemberModal.js',
+    'components/ShareholderBulkModal.js',
+    'components/BoardMemberBulkModal.js',
+    'components/AddCompanyModal.js',
+    'components/EditCompanyModal.js',
+    'components/AddCompanyRequestModal.js',
+    'components/UpdateRequestModal.js',
+    'components/NotificationBell.js',
+    'components/LoginView.js',
+    'components/UserManagementView.js',
+    'components/AdminDashboard.js',
+    'components/RequestManagementView.js',
+    'components/MyRequestsView.js',
+    'components/ExcelUploadV2.js',
+    'components/ValuationBulkView.js',
+    'components/ReportBulkView.js',
+    'components/DataManagementView.js',
+    'components/DetailView.js',
+    'components/ListView.js',
+    'app.js',
+  ];
+
+  let errCount = 0;
+  for (const path of files) {
+    try {
+      const resp = await fetch('/' + path);
+      if (!resp.ok) { line(s2, 'warn', `⚠️ ${path} — HTTP ${resp.status}`); continue; }
+      const code = await resp.text();
+
+      // import/export 라인 직접 탐색
+      const importLines = code.split('\n')
+        .map((l, i) => ({ n: i+1, l }))
+        .filter(({l}) => /^\s*(import|export)\s/.test(l) && !l.trim().startsWith('//'));
+
+      if (importLines.length) {
+        line(s2, 'err', `❌ ${path} — import/export 발견 ${importLines.length}건`);
+        importLines.slice(0, 3).forEach(({n, l}) => line(s2, 'err', `   줄 ${n}: ${l.trim().slice(0,100)}`));
+        errCount++;
+        continue;
+      }
+
+      // Babel.transform 시도
+      try {
+        Babel.transform(code, { presets: ['react'] });
+        line(s2, 'ok', `✅ ${path}`);
+      } catch(bErr) {
+        line(s2, 'err', `❌ ${path} — Babel 오류: ${bErr.message.split('\n')[0]}`);
+        errCount++;
+      }
+    } catch(fetchErr) {
+      line(s2, 'warn', `⚠️ ${path} — fetch 오류: ${fetchErr.message}`);
+    }
+  }
+
+  const s3 = section('3단계: 요약');
+  if (errCount === 0) {
+    line(s3, 'ok', '✅ 모든 파일 Babel 변환 성공 — JS 파일 자체는 문제 없음');
+    line(s3, 'warn', '→ 다른 원인 검토 필요 (실행 순서, 의존성 누락 등)');
+  } else {
+    line(s3, 'err', `❌ 오류 발생 파일 ${errCount}건 — 위 목록 확인`);
+  }
+}
+
+run().catch(e => {
+  const d = section('실행 오류');
+  line(d, 'err', e.message);
+});
+</script>
+</body>
+</html>
