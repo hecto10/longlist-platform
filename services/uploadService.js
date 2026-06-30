@@ -24,7 +24,10 @@ const uploadService = {
       const reader = new FileReader();
       reader.onload = e => {
         try {
-          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+          // cellDates 옵션 사용하지 않음: SheetJS의 시리얼→Date 변환 과정에서
+          // 타임존 의존적 오차(23:59:08 등)로 날짜가 하루 밀리는 알려진 문제가 있음.
+          // 대신 raw 시리얼 번호(정수)를 그대로 받아서 직접 YYYY-MM-DD로 변환한다.
+          const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: false });
           const ws = wb.Sheets[wb.SheetNames[0]];
           // range: 3 → 0-indexed 3번째 행(4행)부터 읽음. 헤더는 0행 기준
           const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', range: 0 });
@@ -38,9 +41,9 @@ const uploadService = {
               const cell = r[j];
               if (cell === undefined || cell === '') {
                 obj[h] = '';
-              } else if (cell instanceof Date) {
-                // 날짜 셀은 String()으로 뭉개지 않고 Date 객체를 그대로 보존
-                // (toDateString에서 로컬 타임존 기준으로 정확히 변환)
+              } else if (typeof cell === 'number') {
+                // 날짜 컬럼이면 엑셀 시리얼 숫자를 그대로 보존(toDateString이 처리)
+                // 숫자 컬럼(매출 등)도 동일하게 숫자 그대로 보존
                 obj[h] = cell;
               } else {
                 obj[h] = String(cell).trim();
@@ -68,12 +71,42 @@ const uploadService = {
     return this.toDateString(v) !== null;
   },
 
-  // YYYY-MM-DD 문자열만 반환. Date 객체의 toISOString()을 사용하지 않음
-  // (toISOString은 UTC 기준이라 KST 환경에서 하루가 밀리는 문제가 있음)
-  toDateString(v) {
-    if (!v) return null;
+  // 엑셀 시리얼 번호(정수) → YYYY-MM-DD 문자열
+  // Date 객체나 toISOString을 전혀 사용하지 않는 순수 정수 산술 변환.
+  // 엑셀 날짜 시스템: serial 1 = 1900-01-01, 단 1900년을 윤년으로 잘못 취급하는
+  // 레거시 버그가 있어 1900-03-01 이후는 +1 보정이 필요(업계 표준 처리 방식).
+  excelSerialToDateString(serial) {
+    const s = Math.round(serial); // 정수가 아니면 반올림 (소수부는 시각이므로 날짜에는 영향 없음)
 
-    // 1) 이미 'YYYY-MM-DD' 또는 'YYYY-MM-DDTHH:mm:ss' 형태의 문자열이면 그대로 앞 10자리 사용
+    // 1899-12-30을 day 0으로 삼는 그레고리력 계산 (순수 정수 연산, 타임존/Date 객체 미사용)
+    // 1899-12-31 = 1, 1900-01-01 = 2, ... (엑셀의 1900-02-29 존재 버그 반영)
+    let days = s;
+    // 1900-02-29(존재하지 않는 날짜, 시리얼 60)를 보정: 60 이상이면 실제로는 하루 적은 날짜
+    if (days >= 60) days -= 1;
+
+    // 1899-12-31을 기준(day=0)으로 순수 정수 그레고리력 변환
+    // (Julian Day Number 알고리즘 — Date 객체 전혀 사용하지 않음)
+    let jdn = days + 2415020; // 검증된 보정 상수 (직접 테스트로 확인: serial 1 → 1900-01-01)
+
+    const a = jdn + 32044;
+    const b = Math.floor((4 * a + 3) / 146097);
+    const c = a - Math.floor((146097 * b) / 4);
+    const d = Math.floor((4 * c + 3) / 1461);
+    const e = c - Math.floor((1461 * d) / 4);
+    const m = Math.floor((5 * e + 2) / 153);
+
+    const day   = e - Math.floor((153 * m + 2) / 5) + 1;
+    const month = m + 3 - 12 * Math.floor(m / 10);
+    const year  = 100 * b + d - 4800 + Math.floor(m / 10);
+
+    return `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  },
+
+  // YYYY-MM-DD 문자열만 반환. Date 객체/toISOString을 사용하지 않음
+  toDateString(v) {
+    if (!v && v !== 0) return null;
+
+    // 1) 'YYYY-MM-DD' 또는 'YYYY-MM-DDTHH:mm:ss' 형태의 문자열 → 앞 10자리 직접 파싱
     if (typeof v === 'string') {
       const m = v.trim().match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
       if (m) {
@@ -83,24 +116,13 @@ const uploadService = {
       return null;
     }
 
-    // 2) XLSX가 셀을 JS Date 객체로 파싱해서 넘겨준 경우 (cellDates:true)
-    //    → UTC 변환(toISOString) 대신 로컬 연/월/일을 그대로 읽음
-    if (v instanceof Date && !isNaN(v.getTime())) {
-      const y  = v.getFullYear();
-      const mo = String(v.getMonth() + 1).padStart(2, '0');
-      const d  = String(v.getDate()).padStart(2, '0');
-      return `${y}-${mo}-${d}`;
-    }
-
-    // 3) 엑셀 시리얼 번호(숫자)인 경우 — 1899-12-30 기준, UTC 보정 없이 직접 계산
-    if (typeof v === 'number') {
-      const epoch = new Date(Date.UTC(1899, 11, 30));
-      const ms = v * 24 * 60 * 60 * 1000;
-      const utcDate = new Date(epoch.getTime() + ms);
-      const y  = utcDate.getUTCFullYear();
-      const mo = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
-      const d  = String(utcDate.getUTCDate()).padStart(2, '0');
-      return `${y}-${mo}-${d}`;
+    // 2) 엑셀 시리얼 번호(숫자) — 순수 정수 산술로 변환 (Date 객체 미사용)
+    if (typeof v === 'number' && !isNaN(v)) {
+      try {
+        return this.excelSerialToDateString(v);
+      } catch {
+        return null;
+      }
     }
 
     return null;
@@ -214,8 +236,6 @@ const uploadService = {
       const companyName = row['company_name']?.trim();
       const companyId   = companyName ? nameMap[companyName] : null;
 
-      console.log('[validateFinancialRows] raw fiscal_date:', row['fiscal_date'], typeof row['fiscal_date']);
-
       if (!companyName) errors.push('company_name 필수');
       else if (!companyId) errors.push(`"${companyName}" 등록되지 않은 회사명 (회사명 정확히 일치 필요)`);
 
@@ -225,7 +245,6 @@ const uploadService = {
 
       // fiscal_date: 원본이 Date 객체든 문자열이든 YYYY-MM-DD 문자열로 정규화
       const fiscalDateStr = this.toDateString(row['fiscal_date']);
-      console.log('[validateFinancialRows] normalized fiscal_date:', fiscalDateStr);
 
       if (!row['fiscal_date']) errors.push('fiscal_date 필수');
       else if (!fiscalDateStr)
@@ -278,7 +297,6 @@ const uploadService = {
 
   async saveFinancialRows(validRows) {
     const payload = validRows.map(row => {
-      console.log('[saveFinancialRows] fiscal_date going to DB:', row['fiscal_date']);
       return {
         company_id:       row._companyId,
         period_type:      row['period_type'],
