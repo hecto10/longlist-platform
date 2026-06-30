@@ -1,17 +1,32 @@
 // ─── LOGIN VIEW ───────────────────────────────────────────
+const COMPANY_DOMAIN = 'hecto.co.kr';
+
 function LoginView() {
   const { useState } = React;
-  const [email,   setEmail]   = useState('');
+  const [localPart, setLocalPart] = useState(''); // ID 부분만 (도메인 제외)
   const [sent,    setSent]    = useState(false);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
+  const email = localPart.trim() ? `${localPart.trim()}@${COMPANY_DOMAIN}` : '';
+
+  function handleChange(e) {
+    let v = e.target.value;
+    if (v.includes('@')) {
+      v = v.split('@')[0];
+      setError(`@${COMPANY_DOMAIN} 부분은 입력하지 않아도 자동으로 붙어요`);
+    } else if (error) {
+      setError('');
+    }
+    setLocalPart(v);
+  }
+
   async function submit() {
-    if (!email.trim()) return setError('이메일을 입력해주세요');
+    if (!localPart.trim()) return setError('아이디를 입력해주세요');
     setLoading(true);
     setError('');
     try {
-      await authService.signInWithMagicLink(email.trim());
+      await authService.signInWithMagicLink(email);
       setSent(true);
     } catch(e) {
       setError('발송 실패: ' + e.message);
@@ -38,7 +53,7 @@ function LoginView() {
             style={{marginTop:24,fontSize:13,color:'var(--text3)',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}
             onClick={()=>setSent(false)}
           >
-            다른 이메일로 시도
+            다른 계정으로 시도
           </button>
         </div>
       </div>
@@ -52,20 +67,29 @@ function LoginView() {
           <div style={{fontSize:15,fontWeight:700,letterSpacing:'-0.02em',marginBottom:6}}>
             <span style={{color:'var(--accent)'}}>●</span> Longlist Platform
           </div>
-          <div style={{fontSize:13,color:'var(--text3)'}}>이메일로 로그인 링크를 받으세요</div>
+          <div style={{fontSize:13,color:'var(--text3)'}}>사내 계정으로 로그인 링크를 받으세요</div>
         </div>
 
         <div className="form-group">
-          <label className="form-label">이메일</label>
-          <input
-            className="form-input"
-            type="email"
-            placeholder="your@company.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
+          <label className="form-label">아이디</label>
+          <div style={{display:'flex',alignItems:'center',border:'1px solid var(--border2)',borderRadius:8,overflow:'hidden',background:'var(--bg)'}}>
+            <input
+              className="form-input"
+              style={{border:'none',borderRadius:0,flex:1,minWidth:0}}
+              type="text"
+              placeholder="yeeun.kim"
+              value={localPart}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
+              autoFocus
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            <span style={{padding:'0 12px',fontSize:13,color:'var(--text3)',whiteSpace:'nowrap',userSelect:'none'}}>
+              @{COMPANY_DOMAIN}
+            </span>
+          </div>
         </div>
 
         {error && (
