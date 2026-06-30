@@ -13,8 +13,13 @@ function LoginView() {
   function handleChange(e) {
     let v = e.target.value;
     if (v.includes('@')) {
-      v = v.split('@')[0];
-      setError(`@${COMPANY_DOMAIN} 부분은 입력하지 않아도 자동으로 붙어요`);
+      const [local, domain] = v.split('@');
+      v = local;
+      if (domain && domain.length > 0 && domain !== COMPANY_DOMAIN) {
+        setError(`사내 계정(@${COMPANY_DOMAIN})만 로그인할 수 있어요`);
+      } else {
+        setError(`@${COMPANY_DOMAIN} 부분은 입력하지 않아도 자동으로 붙어요`);
+      }
     } else if (error) {
       setError('');
     }
@@ -26,9 +31,14 @@ function LoginView() {
     setLoading(true);
     setError('');
     try {
+      console.log('[login email]', email);
+      console.log('[login] window.supabase 존재:', !!window.supabase);
+      console.log('[login] supabase 변수(클라이언트) 존재:', typeof supabase !== 'undefined' ? !!supabase : 'supabase 변수 자체가 없음');
+      console.log('[login] supabase.auth 존재:', typeof supabase !== 'undefined' ? !!supabase?.auth : 'N/A');
       await authService.signInWithMagicLink(email);
       setSent(true);
     } catch(e) {
+      console.error('[login error]', e);
       setError('발송 실패: ' + e.message);
     } finally {
       setLoading(false);
@@ -77,7 +87,7 @@ function LoginView() {
               className="form-input"
               style={{border:'none',borderRadius:0,flex:1,minWidth:0}}
               type="text"
-              placeholder="hecto id"
+              placeholder="hecto.id"
               value={localPart}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
