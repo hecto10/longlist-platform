@@ -77,7 +77,7 @@ function LoginView() {
               className="form-input"
               style={{border:'none',borderRadius:0,flex:1,minWidth:0}}
               type="text"
-              placeholder="yeeun.kim"
+              placeholder="hecto id"
               value={localPart}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
