@@ -163,7 +163,8 @@ const uploadService = {
         else uploadNames.add(name);
       }
 
-      if (row['founded_date'] && !this.isValidDate(row['founded_date']))
+      const foundedDateStr = row['founded_date'] ? this.toDateString(row['founded_date']) : '';
+      if (row['founded_date'] && !foundedDateStr)
         errors.push('설립일: YYYY-MM-DD 형식으로 입력해주세요');
 
       if (row['employee_count'] !== '' && !this.isValidNumber(row['employee_count']))
@@ -185,7 +186,7 @@ const uploadService = {
         if (newTags.length) warnings.push(`신규 태그: "${newTags.join('", "')}" (저장은 가능합니다)`);
       }
 
-      return { ...row, _errors: errors, _warnings: warnings, _status: errors.length ? 'error' : 'valid' };
+      return { ...row, founded_date: foundedDateStr || row['founded_date'], _errors: errors, _warnings: warnings, _status: errors.length ? 'error' : 'valid' };
     });
   },
 
@@ -202,6 +203,8 @@ const uploadService = {
       const companyName = row['company_name']?.trim();
       const companyId   = companyName ? nameMap[companyName] : null;
 
+      console.log('[validateFinancialRows] raw fiscal_date:', row['fiscal_date'], typeof row['fiscal_date']);
+
       if (!companyName) errors.push('company_name 필수');
       else if (!companyId) errors.push(`"${companyName}" 등록되지 않은 회사명 (회사명 정확히 일치 필요)`);
 
@@ -209,8 +212,12 @@ const uploadService = {
       else if (!UPLOAD_ENUMS.period_type.includes(row['period_type']))
         errors.push(`period_type 허용값 오류 (연간 / 1Q / 2Q / 3Q)`);
 
+      // fiscal_date: 원본이 Date 객체든 문자열이든 YYYY-MM-DD 문자열로 정규화
+      const fiscalDateStr = this.toDateString(row['fiscal_date']);
+      console.log('[validateFinancialRows] normalized fiscal_date:', fiscalDateStr);
+
       if (!row['fiscal_date']) errors.push('fiscal_date 필수');
-      else if (!this.isValidDate(row['fiscal_date']))
+      else if (!fiscalDateStr)
         errors.push('fiscal_date: YYYY-MM-DD 형식으로 입력해주세요');
 
       ['revenue', 'operating_profit', 'total_assets', 'net_assets'].forEach(col => {
@@ -222,15 +229,20 @@ const uploadService = {
         errors.push('source_link: https:// 로 시작하는 URL 형식 필요');
 
       // 중복 검사
-      if (companyId && row['fiscal_date'] && row['period_type'] && !errors.length) {
-        const dateStr = this.toDateString(row['fiscal_date']);
-        const key = `${companyId}__${dateStr}__${row['period_type']}`;
+      if (companyId && fiscalDateStr && row['period_type'] && !errors.length) {
+        const key = `${companyId}__${fiscalDateStr}__${row['period_type']}`;
         if (existingKeys.has(key)) errors.push('중복: 동일 기간 데이터 이미 존재');
         else if (uploadKeys.has(key)) errors.push('중복: 파일 내 동일 항목');
         else uploadKeys.add(key);
       }
 
-      return { ...row, _companyId: companyId, _errors: errors, _warnings: warnings, _status: errors.length ? 'error' : 'valid' };
+      // 반환 row의 fiscal_date를 정규화된 문자열로 덮어씀 (Preview/저장 모두 이 값 사용)
+      return {
+        ...row,
+        fiscal_date: fiscalDateStr,
+        _companyId: companyId, _errors: errors, _warnings: warnings,
+        _status: errors.length ? 'error' : 'valid',
+      };
     });
   },
 
@@ -254,18 +266,21 @@ const uploadService = {
   },
 
   async saveFinancialRows(validRows) {
-    const payload = validRows.map(row => ({
-      company_id:       row._companyId,
-      period_type:      row['period_type'],
-      fiscal_date:      this.toDateString(row['fiscal_date']),
-      revenue:          this.toNumber(row['revenue']),
-      operating_profit: this.toNumber(row['operating_profit']),
-      total_assets:     this.toNumber(row['total_assets']),
-      net_assets:       this.toNumber(row['net_assets']),
-      source:           row['source']      || null,
-      source_link:      row['source_link'] || null,
-      memo:             row['memo']        || null,
-    }));
+    const payload = validRows.map(row => {
+      console.log('[saveFinancialRows] fiscal_date going to DB:', row['fiscal_date']);
+      return {
+        company_id:       row._companyId,
+        period_type:      row['period_type'],
+        fiscal_date:      this.toDateString(row['fiscal_date']),
+        revenue:          this.toNumber(row['revenue']),
+        operating_profit: this.toNumber(row['operating_profit']),
+        total_assets:     this.toNumber(row['total_assets']),
+        net_assets:       this.toNumber(row['net_assets']),
+        source:           row['source']      || null,
+        source_link:      row['source_link'] || null,
+        memo:             row['memo']        || null,
+      };
+    });
     const { error } = await supabase.from('financials').insert(payload);
     if (error) throw error;
     return payload.length;
