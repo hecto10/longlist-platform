@@ -34,7 +34,18 @@ const uploadService = {
           const dataRows = raw.slice(3).filter(r => r.some(c => c !== ''));
           const rows = dataRows.map((r, i) => {
             const obj = {};
-            headers.forEach((h, j) => { obj[h] = r[j] !== undefined ? String(r[j]).trim() : ''; });
+            headers.forEach((h, j) => {
+              const cell = r[j];
+              if (cell === undefined || cell === '') {
+                obj[h] = '';
+              } else if (cell instanceof Date) {
+                // 날짜 셀은 String()으로 뭉개지 않고 Date 객체를 그대로 보존
+                // (toDateString에서 로컬 타임존 기준으로 정확히 변환)
+                obj[h] = cell;
+              } else {
+                obj[h] = String(cell).trim();
+              }
+            });
             obj._rowIndex = i + 4; // 엑셀 행 번호 (4행부터)
             return obj;
           });
