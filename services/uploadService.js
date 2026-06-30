@@ -54,13 +54,45 @@ const uploadService = {
 
   isValidDate(v) {
     if (!v) return false;
-    return !isNaN(new Date(v).getTime());
+    return this.toDateString(v) !== null;
   },
 
+  // YYYY-MM-DD 문자열만 반환. Date 객체의 toISOString()을 사용하지 않음
+  // (toISOString은 UTC 기준이라 KST 환경에서 하루가 밀리는 문제가 있음)
   toDateString(v) {
     if (!v) return null;
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+
+    // 1) 이미 'YYYY-MM-DD' 또는 'YYYY-MM-DDTHH:mm:ss' 형태의 문자열이면 그대로 앞 10자리 사용
+    if (typeof v === 'string') {
+      const m = v.trim().match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+      if (m) {
+        const [, y, mo, d] = m;
+        return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      }
+      return null;
+    }
+
+    // 2) XLSX가 셀을 JS Date 객체로 파싱해서 넘겨준 경우 (cellDates:true)
+    //    → UTC 변환(toISOString) 대신 로컬 연/월/일을 그대로 읽음
+    if (v instanceof Date && !isNaN(v.getTime())) {
+      const y  = v.getFullYear();
+      const mo = String(v.getMonth() + 1).padStart(2, '0');
+      const d  = String(v.getDate()).padStart(2, '0');
+      return `${y}-${mo}-${d}`;
+    }
+
+    // 3) 엑셀 시리얼 번호(숫자)인 경우 — 1899-12-30 기준, UTC 보정 없이 직접 계산
+    if (typeof v === 'number') {
+      const epoch = new Date(Date.UTC(1899, 11, 30));
+      const ms = v * 24 * 60 * 60 * 1000;
+      const utcDate = new Date(epoch.getTime() + ms);
+      const y  = utcDate.getUTCFullYear();
+      const mo = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+      const d  = String(utcDate.getUTCDate()).padStart(2, '0');
+      return `${y}-${mo}-${d}`;
+    }
+
+    return null;
   },
 
   isValidNumber(v) {
