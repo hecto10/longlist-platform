@@ -1,15 +1,23 @@
 // ─── USER MANAGEMENT VIEW (admin 전용) ───────────────────
-function UserManagementView({ onBack, currentUserId }) {
+function UserManagementView({ onBack, currentUserId, session }) {
   const { useState, useEffect } = React;
-  const [profiles, setProfiles] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [toast,    setToast]    = useState(null);
+  const [profiles,       setProfiles]       = useState([]);
+  const [loading,        setLoading]        = useState(true);
+  const [toast,          setToast]          = useState(null);
+  const [allowedEmails,  setAllowedEmails]  = useState([]);
+  const [newEmail,       setNewEmail]       = useState('');
+  const [newNote,        setNewNote]        = useState('');
+  const [addingEmail,    setAddingEmail]    = useState(false);
 
   async function load() {
     setLoading(true);
     try {
-      const data = await authService.fetchAllProfiles();
+      const [data, emails] = await Promise.all([
+        authService.fetchAllProfiles(),
+        authService.fetchAllowedEmails(),
+      ]);
       setProfiles(data);
+      setAllowedEmails(emails);
     } catch(e) {
       setToast({ msg: '불러오기 실패: ' + e.message, type: 'error' });
     } finally {
@@ -18,6 +26,31 @@ function UserManagementView({ onBack, currentUserId }) {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function handleAddAllowedEmail() {
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return alert('이메일을 입력해주세요');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('올바른 이메일 형식을 입력해주세요');
+    setAddingEmail(true);
+    try {
+      await authService.addAllowedEmail(email, newNote, session?.user?.id);
+      setNewEmail(''); setNewNote('');
+      await load();
+      setToast({ msg: `${email} 사전 승인 등록 완료`, type: 'success' });
+    } catch(e) {
+      if (e.message?.includes('unique')) alert('이미 등록된 이메일입니다');
+      else alert('등록 실패: ' + e.message);
+    } finally { setAddingEmail(false); }
+  }
+
+  async function handleDeleteAllowedEmail(id, email) {
+    if (!window.confirm(`${email}을 사전 승인 목록에서 제거하시겠습니까?`)) return;
+    try {
+      await authService.deleteAllowedEmail(id);
+      await load();
+      setToast({ msg: '삭제됐어요', type: 'success' });
+    } catch(e) { alert('삭제 실패: ' + e.message); }
+  }
 
   async function handleRoleChange(userId, newRole) {
     if (userId === currentUserId) return alert('본인 role은 변경할 수 없습니다');
@@ -160,6 +193,58 @@ function UserManagementView({ onBack, currentUserId }) {
           ))}
         </div>
       )}
+
+      {/* ── 사전 승인 이메일 ── */}
+      <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 24 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>사전 승인 이메일</div>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 16 }}>
+          등록된 이메일은 최초 로그인 시 승인 대기 없이 바로 활성화됩니다.
+        </div>
+
+        {/* 추가 입력 */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+          <input
+            className="form-input" style={{ flex: 2, minWidth: 200 }}
+            placeholder="이메일 (예: yeeun.kim@hecto.co.kr)"
+            value={newEmail} onChange={e => setNewEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddAllowedEmail()}
+          />
+          <input
+            className="form-input" style={{ flex: 1, minWidth: 120 }}
+            placeholder="메모 (선택)"
+            value={newNote} onChange={e => setNewNote(e.target.value)}
+          />
+          <button
+            className="btn btn-primary" style={{ whiteSpace: 'nowrap' }}
+            onClick={handleAddAllowedEmail} disabled={addingEmail}
+          >{addingEmail ? '등록 중...' : '+ 등록'}</button>
+        </div>
+
+        {/* 등록된 목록 */}
+        {allowedEmails.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text3)' }}>등록된 사전 승인 이메일이 없습니다</div>
+        ) : (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+            {allowedEmails.map((ae, idx) => (
+              <div key={ae.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 16px', fontSize: 13,
+                borderBottom: idx < allowedEmails.length - 1 ? '1px solid var(--border)' : 'none',
+                background: 'var(--bg2)',
+              }}>
+                <div>
+                  <span style={{ fontWeight: 500 }}>{ae.email}</span>
+                  {ae.note && <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 10 }}>{ae.note}</span>}
+                </div>
+                <button
+                  onClick={() => handleDeleteAllowedEmail(ae.id, ae.email)}
+                  style={{ fontSize: 11, padding: '3px 10px', borderRadius: 5, border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: 'var(--red)', cursor: 'pointer', fontFamily: 'inherit' }}
+                >삭제</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
