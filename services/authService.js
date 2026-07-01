@@ -36,6 +36,49 @@ const authService = {
     return data;
   },
 
+  // profile이 없으면 신규 생성 (최초 로그인 시)
+  // allowed_emails에 이메일이 있으면 active, 없으면 pending으로 생성
+  async ensureProfile(userId, email) {
+    // 이미 profile이 있으면 그대로 반환
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id, name, role, status')
+      .eq('id', userId)
+      .maybeSingle();
+    if (existing) return existing;
+
+    // allowed_emails에서 본인 이메일 확인 (RLS: 본인 이메일만 조회 가능)
+    const normalizedEmail = email.toLowerCase().trim();
+    const { data: allowed } = await supabase
+      .from('allowed_emails')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    const status = allowed ? 'active' : 'pending';
+    const name   = email.split('@')[0]; // 초기 이름: 이메일 ID 부분
+
+    const { data: newProfile, error: insertErr } = await supabase
+      .from('profiles')
+      .insert({ id: userId, name, role: 'user', status })
+      .select()
+      .single();
+    if (insertErr) throw insertErr;
+
+    // pending인 경우 admin에게 알림 생성
+    if (status === 'pending') {
+      await notificationService.insert({
+        recipient_role: 'admin',
+        type:           'NEW_USER_PENDING',
+        title:          '신규 사용자 승인 요청',
+        message:        `${email} 계정 승인이 필요합니다.`,
+        link_type:      'users',
+      });
+    }
+
+    return newProfile;
+  },
+
   // profile 이름 업데이트
   async updateProfileName(userId, name) {
     const { error } = await supabase
@@ -49,6 +92,33 @@ const authService = {
   onAuthStateChange(callback) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
     return subscription;
+  },
+
+  // ── 사전 승인 이메일 관리 (admin 전용) ─────────────────
+
+  async fetchAllowedEmails() {
+    const { data, error } = await supabase
+      .from('allowed_emails')
+      .select('id, email, note, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async addAllowedEmail(email, note, adminUserId) {
+    const normalized = email.toLowerCase().trim();
+    const { error } = await supabase
+      .from('allowed_emails')
+      .insert({ email: normalized, note: note || null, created_by: adminUserId });
+    if (error) throw error;
+  },
+
+  async deleteAllowedEmail(id) {
+    const { error } = await supabase
+      .from('allowed_emails')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   },
 
   // ── 사용자 관리 (admin 전용) ────────────────────────────
