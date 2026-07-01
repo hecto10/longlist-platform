@@ -30,13 +30,13 @@ function App() {
   useEffect(() => {
     authService.getSession().then(s => {
       setSession(s);
-      if (s?.user) loadProfile(s.user.id);
+      if (s?.user) loadProfile(s.user.id, s.user.email);
     }).catch(() => setSession(null));
 
     const sub = authService.onAuthStateChange((event, s) => {
       setSession(s);
       if (s?.user) {
-        loadProfile(s.user.id);
+        loadProfile(s.user.id, s.user.email);
       } else {
         setProfile(null);
         setSelected(null);
@@ -52,13 +52,14 @@ function App() {
     if (selected) window.scrollTo({ top: 0, behavior: 'auto' });
   }, [selected]);
 
-  async function loadProfile(userId) {
+  async function loadProfile(userId, userEmail) {
     try {
-      const p = await authService.getProfile(userId);
+      // ensureProfile: profile 없으면 신규 생성(allowed_emails 체크), 있으면 조회
+      const p = await authService.ensureProfile(userId, userEmail || '');
       setProfile(p);
-      // 초기 view 설정: admin → dashboard, user → list
       if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list');
     } catch(e) {
+      // 생성 직후 조회 타이밍 문제 대비 1.5초 후 재시도
       setTimeout(() => {
         authService.getProfile(userId)
           .then(p => { setProfile(p); if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list'); })
@@ -111,6 +112,22 @@ function App() {
   // ── 접근 제한 (pending / blocked) ────────────────────
   if (profile && profile.status !== 'active') {
     const isPending = profile.status === 'pending';
+
+    // pending 상태에서 30초마다 자동으로 승인 여부 체크
+    React.useEffect(() => {
+      if (!isPending) return;
+      const interval = setInterval(async () => {
+        try {
+          const updated = await authService.getProfile(profile.id);
+          if (updated.status === 'active') {
+            setProfile(updated);
+            setView(updated.role === 'admin' ? 'dashboard' : 'list');
+          }
+        } catch {}
+      }, 30000);
+      return () => clearInterval(interval);
+    }, [isPending, profile?.id]);
+
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center' }}>
@@ -122,9 +139,12 @@ function App() {
             <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.9 }}>
               관리자 승인 후 서비스를 이용할 수 있습니다.<br/>
               승인 요청은 이미 접수되었습니다.<br/>
-              추가 로그인 링크 요청은 필요하지 않습니다.<br/>
+              승인되면 이 화면에서 자동으로 진입됩니다.<br/>
               <br/>
               문의: <a href="mailto:mgtplan_of@hecto.co.kr" style={{ color: 'var(--accent)', textDecoration: 'none' }}>mgtplan_of@hecto.co.kr</a>
+              <div style={{ marginTop: 16, fontSize: 11, color: 'var(--text3)' }}>
+                승인 상태를 30초마다 자동 확인하고 있습니다
+              </div>
             </div>
           ) : (
             <div style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.9 }}>
@@ -234,7 +254,7 @@ function App() {
             onRefresh={() => companyService.fetchAll().then(setUploadCompanies).catch(() => {})}
           />
         ) : view === 'users' && isAdmin ? (
-          <UserManagementView onBack={() => setView('list')} currentUserId={session.user.id} />
+          <UserManagementView onBack={() => setView('list')} currentUserId={session.user.id} session={session} />
         ) : view === 'requests' && isAdmin ? (
           <RequestManagementView session={session} onNavigate={handleNavigateFromRequest} />
         ) : view === 'myRequests' && !isAdmin ? (
