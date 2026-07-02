@@ -74,6 +74,7 @@ function App() {
       setProfile(p);
       if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list');
     } catch(e) {
+      console.error('[loadProfile] catch 진입. error:', e?.message, e);
       // 생성 직후 조회 타이밍 문제 대비 1.5초 후 재시도
       setTimeout(() => {
         authService.getProfile(userId)
