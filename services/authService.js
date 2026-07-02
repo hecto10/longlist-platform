@@ -39,12 +39,13 @@ const authService = {
   // profile이 없으면 신규 생성 (최초 로그인 시)
   // allowed_emails에 이메일이 있으면 active, 없으면 pending으로 생성
   async ensureProfile(userId, email) {
-    // 이미 profile이 있으면 그대로 반환
+    console.log('[ensureProfile] 진입. userId:', userId, '| email:', email);
     const { data: existing } = await supabase
       .from('profiles')
       .select('id, name, role, status')
       .eq('id', userId)
       .maybeSingle();
+    console.log('[ensureProfile] existing 조회 결과:', JSON.stringify(existing));
     if (existing) return existing;
 
     // allowed_emails에서 본인 이메일 확인 (RLS: 본인 이메일만 조회 가능)
@@ -77,6 +78,7 @@ const authService = {
       .insert({ id: userId, name, email: normalizedEmail, role, status })
       .select()
       .single();
+    console.log('[ensureProfile] INSERT 결과:', JSON.stringify({ data: newProfile, error: insertErr }));
     if (insertErr) throw insertErr;
 
     // pending인 경우 admin에게 알림 생성
