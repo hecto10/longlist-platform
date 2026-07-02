@@ -52,6 +52,21 @@ function App() {
     if (selected) window.scrollTo({ top: 0, behavior: 'auto' });
   }, [selected]);
 
+  // pending 상태 자동 체크 (30초마다) — 조건부 블록 밖에서 호출해야 hooks 규칙 준수
+  React.useEffect(() => {
+    if (!profile || profile.status !== 'pending') return;
+    const interval = setInterval(async () => {
+      try {
+        const updated = await authService.getProfile(profile.id);
+        if (updated.status === 'active') {
+          setProfile(updated);
+          setView(updated.role === 'admin' ? 'dashboard' : 'list');
+        }
+      } catch {}
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [profile?.status, profile?.id]);
+
   async function loadProfile(userId, userEmail) {
     try {
       // ensureProfile: profile 없으면 신규 생성(allowed_emails 체크), 있으면 조회
@@ -112,22 +127,6 @@ function App() {
   // ── 접근 제한 (pending / blocked) ────────────────────
   if (profile && profile.status !== 'active') {
     const isPending = profile.status === 'pending';
-
-    // pending 상태에서 30초마다 자동으로 승인 여부 체크
-    React.useEffect(() => {
-      if (!isPending) return;
-      const interval = setInterval(async () => {
-        try {
-          const updated = await authService.getProfile(profile.id);
-          if (updated.status === 'active') {
-            setProfile(updated);
-            setView(updated.role === 'admin' ? 'dashboard' : 'list');
-          }
-        } catch {}
-      }, 30000);
-      return () => clearInterval(interval);
-    }, [isPending, profile?.id]);
-
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '48px 40px', maxWidth: 420, width: '100%', textAlign: 'center' }}>
