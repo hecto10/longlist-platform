@@ -49,22 +49,26 @@ const authService = {
 
     // allowed_emails에서 본인 이메일 확인 (RLS: 본인 이메일만 조회 가능)
     const normalizedEmail = (email || '').toLowerCase().trim();
+
+    console.log('[ensureProfile] 전달된 email 원본:', JSON.stringify(email));
+    console.log('[ensureProfile] normalized email:', JSON.stringify(normalizedEmail));
+
     let allowed = null;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('allowed_emails')
-        .select('id')
+        .select('*')
         .eq('email', normalizedEmail)
         .maybeSingle();
+
+      console.log('[ensureProfile] allowed_emails 조회 결과:', JSON.stringify({ data, error }));
       allowed = data;
     } catch(e) {
-      console.warn('[ensureProfile] allowed_emails 조회 실패:', e.message);
+      console.warn('[ensureProfile] allowed_emails 조회 실패 (catch):', e.message);
     }
 
     const status = allowed ? 'active' : 'pending';
-    const name   = (email || '').split('@')[0] || 'user';
-
-    console.log('[ensureProfile] email:', normalizedEmail, '| allowed:', !!allowed, '| status:', status);
+    console.log('[ensureProfile] allowed:', allowed, '| 최종 status:', status);
 
     const { data: newProfile, error: insertErr } = await supabase
       .from('profiles')
