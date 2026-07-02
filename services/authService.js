@@ -81,6 +81,22 @@ const authService = {
     console.log('[ensureProfile] INSERT 결과:', JSON.stringify({ data: newProfile, error: insertErr }));
     if (insertErr) throw insertErr;
 
+    // active로 생성된 경우 allowed_emails에서 해당 이메일 삭제
+    // (사전 승인 대기 목록에서 제거 — 이미 가입 완료됐으므로)
+    // INSERT 실패 시에는 이 코드에 도달하지 않으므로 안전
+    if (status === 'active' && allowed?.id) {
+      try {
+        const { error: delErr } = await supabase
+          .from('allowed_emails')
+          .delete()
+          .eq('id', allowed.id);
+        if (delErr) console.warn('[ensureProfile] allowed_emails 삭제 실패 (로그인은 유지):', delErr.message);
+        else console.log('[ensureProfile] allowed_emails 삭제 완료:', normalizedEmail);
+      } catch(e) {
+        console.warn('[ensureProfile] allowed_emails 삭제 실패 (catch):', e.message);
+      }
+    }
+
     // pending인 경우 admin에게 알림 생성
     // notificationService 로드 순서와 무관하게 supabase 직접 호출
     if (status === 'pending') {
