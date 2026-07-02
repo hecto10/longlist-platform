@@ -7,6 +7,7 @@ function UserManagementView({ onBack, currentUserId, session }) {
   const [allowedEmails,  setAllowedEmails]  = useState([]);
   const [newEmail,       setNewEmail]       = useState('');
   const [newNote,        setNewNote]        = useState('');
+  const [newRole,        setNewRole]        = useState('user');
   const [addingEmail,    setAddingEmail]    = useState(false);
 
   async function load() {
@@ -33,8 +34,8 @@ function UserManagementView({ onBack, currentUserId, session }) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert('올바른 이메일 형식을 입력해주세요');
     setAddingEmail(true);
     try {
-      await authService.addAllowedEmail(email, newNote, session?.user?.id);
-      setNewEmail(''); setNewNote('');
+      await authService.addAllowedEmail(email, newNote, session?.user?.id, newRole);
+      setNewEmail(''); setNewNote(''); setNewRole('user');
       await load();
       setToast({ msg: `${email} 사전 승인 등록 완료`, type: 'success' });
     } catch(e) {
@@ -209,8 +210,15 @@ function UserManagementView({ onBack, currentUserId, session }) {
             value={newEmail} onChange={e => setNewEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAddAllowedEmail()}
           />
+          <select
+            className="form-input" style={{ width: 100, flexShrink: 0 }}
+            value={newRole} onChange={e => setNewRole(e.target.value)}
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
           <input
-            className="form-input" style={{ flex: 1, minWidth: 120 }}
+            className="form-input" style={{ flex: 1, minWidth: 100 }}
             placeholder="메모 (선택)"
             value={newNote} onChange={e => setNewNote(e.target.value)}
           />
@@ -234,7 +242,13 @@ function UserManagementView({ onBack, currentUserId, session }) {
               }}>
                 <div>
                   <span style={{ fontWeight: 500 }}>{ae.email}</span>
-                  {ae.note && <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 10 }}>{ae.note}</span>}
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 4, marginLeft: 8,
+                    background: ae.initial_role === 'admin' ? 'rgba(255,106,0,0.12)' : 'var(--bg3)',
+                    color: ae.initial_role === 'admin' ? 'var(--accent)' : 'var(--text3)',
+                    border: `1px solid ${ae.initial_role === 'admin' ? 'rgba(255,106,0,0.3)' : 'var(--border)'}`,
+                  }}>{ae.initial_role === 'admin' ? 'ADMIN' : 'USER'}</span>
+                  {ae.note && <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 8 }}>{ae.note}</span>}
                 </div>
                 <button
                   onClick={() => handleDeleteAllowedEmail(ae.id, ae.email)}
