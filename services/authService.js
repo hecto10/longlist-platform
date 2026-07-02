@@ -74,7 +74,7 @@ const authService = {
 
     const { data: newProfile, error: insertErr } = await supabase
       .from('profiles')
-      .insert({ id: userId, name, role, status })
+      .insert({ id: userId, name, email: normalizedEmail, role, status })
       .select()
       .single();
     if (insertErr) throw insertErr;
@@ -163,7 +163,7 @@ const authService = {
   async fetchAllProfiles() {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, name, role, status, created_at')
+      .select('id, name, email, role, status, created_at')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
