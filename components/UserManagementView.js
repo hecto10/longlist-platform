@@ -19,6 +19,7 @@ function UserManagementView({ onBack, currentUserId, session }) {
       ]);
       setProfiles(data);
       setAllowedEmails(emails);
+      console.log('[UserManagementView] profiles:', data?.length, data?.map(p => ({ id: p.id?.slice(0,8), name: p.name, email: p.email, status: p.status, role: p.role })));
     } catch(e) {
       setToast({ msg: '불러오기 실패: ' + e.message, type: 'error' });
     } finally {
@@ -118,6 +119,9 @@ function UserManagementView({ onBack, currentUserId, session }) {
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>
                   {p.name || '(이름 없음)'}
+                  {p.email && (
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{p.email}</div>
+                  )}
                   {p.id === currentUserId && (
                     <span style={{ fontSize: 10, color: 'var(--text3)', marginLeft: 6 }}>(나)</span>
                   )}
