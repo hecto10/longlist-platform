@@ -57,7 +57,7 @@ const authService = {
     try {
       const { data, error } = await supabase
         .from('allowed_emails')
-        .select('*')
+        .select('id, initial_role')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
@@ -67,12 +67,14 @@ const authService = {
       console.warn('[ensureProfile] allowed_emails 조회 실패 (catch):', e.message);
     }
 
-    const status = allowed ? 'active' : 'pending';
-    console.log('[ensureProfile] allowed:', allowed, '| 최종 status:', status);
+    const status = allowed ? 'active'           : 'pending';
+    const role   = allowed ? (allowed.initial_role || 'user') : 'user';
+    const name   = (email || '').split('@')[0] || 'user';
+    console.log('[ensureProfile] status:', status, '| role:', role);
 
     const { data: newProfile, error: insertErr } = await supabase
       .from('profiles')
-      .insert({ id: userId, name, role: 'user', status })
+      .insert({ id: userId, name, role, status })
       .select()
       .single();
     if (insertErr) throw insertErr;
@@ -134,11 +136,16 @@ const authService = {
     return data || [];
   },
 
-  async addAllowedEmail(email, note, adminUserId) {
+  async addAllowedEmail(email, note, adminUserId, initialRole) {
     const normalized = email.toLowerCase().trim();
     const { error } = await supabase
       .from('allowed_emails')
-      .insert({ email: normalized, note: note || null, created_by: adminUserId });
+      .insert({
+        email:        normalized,
+        note:         note         || null,
+        created_by:   adminUserId  || null,
+        initial_role: initialRole  || 'user',
+      });
     if (error) throw error;
   },
 
