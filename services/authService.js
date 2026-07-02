@@ -48,15 +48,23 @@ const authService = {
     if (existing) return existing;
 
     // allowed_emails에서 본인 이메일 확인 (RLS: 본인 이메일만 조회 가능)
-    const normalizedEmail = email.toLowerCase().trim();
-    const { data: allowed } = await supabase
-      .from('allowed_emails')
-      .select('id')
-      .eq('email', normalizedEmail)
-      .maybeSingle();
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    let allowed = null;
+    try {
+      const { data } = await supabase
+        .from('allowed_emails')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+      allowed = data;
+    } catch(e) {
+      console.warn('[ensureProfile] allowed_emails 조회 실패:', e.message);
+    }
 
     const status = allowed ? 'active' : 'pending';
-    const name   = email.split('@')[0]; // 초기 이름: 이메일 ID 부분
+    const name   = (email || '').split('@')[0] || 'user';
+
+    console.log('[ensureProfile] email:', normalizedEmail, '| allowed:', !!allowed, '| status:', status);
 
     const { data: newProfile, error: insertErr } = await supabase
       .from('profiles')
@@ -66,14 +74,31 @@ const authService = {
     if (insertErr) throw insertErr;
 
     // pending인 경우 admin에게 알림 생성
+    // notificationService 로드 순서와 무관하게 supabase 직접 호출
     if (status === 'pending') {
-      await notificationService.insert({
-        recipient_role: 'admin',
-        type:           'NEW_USER_PENDING',
-        title:          '신규 사용자 승인 요청',
-        message:        `${email} 계정 승인이 필요합니다.`,
-        link_type:      'users',
-      });
+      try {
+        // admin 전체에게 알림: recipient_id 없이 recipient_role만 사용
+        const { data: admins } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin')
+          .eq('status', 'active');
+
+        if (admins?.length) {
+          const notifs = admins.map(a => ({
+            recipient_id:   a.id,
+            recipient_role: null,
+            type:           'NEW_USER_PENDING',
+            title:          '신규 사용자 승인 요청',
+            message:        `${email} 계정 승인이 필요합니다.`,
+            link_type:      'users',
+            is_read:        false,
+          }));
+          await supabase.from('notifications').insert(notifs);
+        }
+      } catch(e) {
+        console.warn('[ensureProfile] 알림 생성 실패 (profile 생성은 완료):', e.message);
+      }
     }
 
     return newProfile;
