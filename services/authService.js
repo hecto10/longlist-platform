@@ -98,30 +98,24 @@ const authService = {
     }
 
     // pending인 경우 admin에게 알림 생성
-    // notificationService 로드 순서와 무관하게 supabase 직접 호출
+    // recipient_role='admin'으로 단건 insert — admin 목록 조회 불필요 (RLS 우회)
     if (status === 'pending') {
       try {
-        // admin 전체에게 알림: recipient_id 없이 recipient_role만 사용
-        const { data: admins } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', 'admin')
-          .eq('status', 'active');
-
-        if (admins?.length) {
-          const notifs = admins.map(a => ({
-            recipient_id:   a.id,
-            recipient_role: null,
+        const { error: notifErr } = await supabase
+          .from('notifications')
+          .insert({
+            recipient_id:   null,
+            recipient_role: 'admin',
             type:           'NEW_USER_PENDING',
             title:          '신규 사용자 승인 요청',
             message:        `${email} 계정 승인이 필요합니다.`,
             link_type:      'users',
             is_read:        false,
-          }));
-          await supabase.from('notifications').insert(notifs);
-        }
+          });
+        if (notifErr) console.warn('[ensureProfile] 알림 생성 실패:', notifErr.message);
+        else console.log('[ensureProfile] 신규 사용자 알림 생성 완료');
       } catch(e) {
-        console.warn('[ensureProfile] 알림 생성 실패 (profile 생성은 완료):', e.message);
+        console.warn('[ensureProfile] 알림 생성 실패 (catch):', e.message);
       }
     }
 
