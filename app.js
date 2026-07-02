@@ -69,18 +69,15 @@ function App() {
 
   async function loadProfile(userId, userEmail) {
     try {
-      // ensureProfile: profile 없으면 신규 생성(allowed_emails 체크), 있으면 조회
       const p = await authService.ensureProfile(userId, userEmail || '');
       setProfile(p);
       if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list');
     } catch(e) {
-      console.error('[loadProfile] catch 진입. error:', e?.message, e);
-      // 생성 직후 조회 타이밍 문제 대비 1.5초 후 재시도
-      setTimeout(() => {
-        authService.getProfile(userId)
-          .then(p => { setProfile(p); if (view === null) setView(p.role === 'admin' ? 'dashboard' : 'list'); })
-          .catch(() => { if (view === null) setView('list'); });
-      }, 1500);
+      console.error('[loadProfile] profile 생성/조회 실패 — 플랫폼 진입 차단:', e?.message, e);
+      // fail-closed: profile 확인 불가 시 로그아웃 처리
+      try { await authService.signOut(); } catch {}
+      setSession(null);
+      setProfile(null);
     }
   }
 
